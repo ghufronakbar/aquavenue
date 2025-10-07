@@ -465,7 +465,7 @@ function CancelOrderDialog({ order }: { order: Order }) {
             }
             toast.success('Pesanan berhasil dibatalkan');
             await sleep(1000);
-            // window.location.reload();
+            window.location.reload();
         } catch (error) {
             toast.error('Gagal membatalkan pesanan');
             console.error(error);

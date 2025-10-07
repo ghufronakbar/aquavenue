@@ -165,7 +165,7 @@ export default function RiwayatPesanan({ orders }: { orders: Order[] }) {
     // 3) Flatten ke row
     const rows: OrderRow[] = useMemo(
         () =>
-            filtered.map((o) => ({
+            filtered?.map?.((o) => ({
                 id: o.id,
                 status: o.status,
                 total: o.total,

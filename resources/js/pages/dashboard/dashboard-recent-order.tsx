@@ -30,7 +30,7 @@ export const DashboardRecentOrder = ({ className }: Props) => {
                 <CardTitle className="text-base">Pesanan Terbaru</CardTitle>
             </CardHeader>
             <CardContent className="px-0">
-                <ScrollArea className="h-[320px] w-full">
+                <ScrollArea className="h-full w-full">
                     <Table className="w-full">
                         <TableHeader>
                             <TableRow>

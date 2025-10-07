@@ -15,7 +15,7 @@ export const DashboardAttendance = ({ className }: Props) => {
                 <CardTitle className="text-base">Kehadiran Admin</CardTitle>
             </CardHeader>
             <CardContent className="px-0">
-                <div className="px-4">
+                <div className="px-4 h-[320px] overflow-y-auto">
                     <div className="space-y-4">
                         {data.attendance.map((r, i) => (
                             <div

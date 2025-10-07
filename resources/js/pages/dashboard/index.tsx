@@ -10,7 +10,6 @@ import { DashboardProvider } from './dashboard-context';
 import { DashboardHeader } from './dashboard-header';
 import { DashboardRecentOrder } from './dashboard-recent-order';
 import { DashboardTopFacilities } from './dashboard-top-facilities';
-import { DashboardUtilization } from './dashboard-utilization';
 import { DashboardKpiCustomer } from './kpi/dashboard-kpi-customer';
 import { DashboardKpiIncome } from './kpi/dashboard-kpi-income';
 import { DashboardKpiOrder } from './kpi/dashboard-kpi-order';
@@ -35,7 +34,9 @@ export default function Dashboard() {
                         <div
                             className={cn(
                                 'grid gap-4 md:grid-cols-2 xl:grid-cols-4',
-                                role === 'admin' ? 'md:grid-cols-3 xl:grid-cols-3' : '',
+                                role === 'admin'
+                                    ? 'md:grid-cols-3 xl:grid-cols-3'
+                                    : '',
                             )}
                         >
                             {visible(['superadmin']) && <DashboardKpiIncome />}
@@ -55,32 +56,29 @@ export default function Dashboard() {
                     {visible(['admin', 'superadmin']) && (
                         <div className="grid gap-4 lg:grid-cols-3">
                             {visible(['admin', 'superadmin']) && (
-                                <DashboardChartTrend className='lg:col-span-2'/>
+                                <DashboardChartTrend className="lg:col-span-2" />
                             )}
                             {visible(['admin', 'superadmin']) && (
-                                <DashboardChartDistribution className=''/>
+                                <DashboardChartDistribution className="" />
                             )}
                         </div>
                     )}
 
                     {/* Secondary Row */}
-                    <div className="grid gap-4 xl:grid-cols-3 overflow-hidden w-full">
+                    <div className="flex w-full flex-row gap-4 overflow-hidden">
                         {visible(['admin', 'superadmin', 'user']) && (
-                            <DashboardRecentOrder className='col-span-1 lg:col-span-2 w-full overflow-hidden'/>
+                            <DashboardRecentOrder className="w-full md:w-2/3" />
                         )}
 
-                        <div className="grid grid-cols-1 gap-4 w-full">
-                            {visible(['superadmin']) && <DashboardAttendance className='col-span-1'/>}
+                        <div className="flex h-fit w-full flex-col gap-4">
+                            {visible(['superadmin']) && (
+                                <DashboardAttendance className="h-1/2" />
+                            )}
                             {visible(['admin', 'superadmin', 'user']) && (
-                                <DashboardTopFacilities className='col-span-1'/>
+                                <DashboardTopFacilities className="h-1/2" />
                             )}
                         </div>
                     </div>
-
-                    {/* Utilization full width */}
-                    {visible(['admin', 'superadmin']) && (
-                        <DashboardUtilization />
-                    )}
                 </div>
             </DashboardProvider>
         </AppLayout>

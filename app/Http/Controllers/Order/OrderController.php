@@ -30,12 +30,6 @@ class OrderController extends Controller
         if (!$user) {
             return redirect()->route('login')->with('error', 'Silahkan login terlebih dahulu');
         }
-        // if (!$user->role) {
-        //     return redirect()->route('login')->with('error', 'Silahkan login terlebih dahulu');
-        // }
-        // if ($user->role != Role::User) {
-        //     return redirect()->route('dashboard');
-        // }
         $facilities = Facility::withAvailableStock()->whereNull('deleted_at')->get();
         $pool = Pool::first();
         $poolPrice = $pool->price;
@@ -92,9 +86,9 @@ class OrderController extends Controller
             ->values();
 
         if ($extras->isEmpty()) {
-            return back()
-                ->withErrors(['extra_facilities' => 'Pilih minimal 1 fasilitas.'])
-                ->withInput();
+            // return back()
+            //     ->withErrors(['extra_facilities' => 'Pilih minimal 1 fasilitas.'])
+            //     ->withInput();
         }
 
         $orderId = (string) Str::uuid();
@@ -255,11 +249,11 @@ class OrderController extends Controller
     public function allHistory()
     {
         $user = Auth::user();
-        $orders = Order::with(['orderDetails.facility', 'user'])->get();
-        if ($user->role == Role::User) {
-            $orders = $orders->where('user_id', $user->id);
-        }
-        // dd($orders);
+
+        $orders = Order::with(['orderDetails.facility', 'user'])
+            ->when($user->role === Role::User, fn($q) => $q->where('user_id', $user->id))
+            ->get(); // hasilnya sudah array-like (0..n)
+
         return Inertia::render('order/riwayat-pesanan', [
             'orders' => $orders,
         ]);

@@ -39,7 +39,7 @@ export const DashboardKpiOrder = ({ className }: Props) => {
                                 ) : (
                                     <ArrowDownRight className="h-4 w-4" />
                                 )}
-                                {delta}%
+                                {delta?.toFixed(2)}%
                             </span>
                         )}
                     </div>

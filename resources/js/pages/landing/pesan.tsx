@@ -55,23 +55,23 @@ export default function PesanPage({ facilities, poolPrice }: Props) {
     const [maxPoolCapacity, setMaxPoolCapacity] = useState(0);
     const orderSchema = z.object({
         date: z.string().min(1, { message: 'Tanggal harus diisi' }),
-        amount: z.coerce
-            .number()
-            .min(1, { message: 'Jumlah harus diisi' })
-            .max(maxPoolCapacity, {
-                message: `Jumlah tidak boleh melebihi ${maxPoolCapacity}`,
-            }),
+        amount: z.coerce.number().min(1, { message: 'Jumlah harus diisi' }),
         time: z.coerce
             .number()
             .min(8, { message: 'Min 08' })
             .max(21, { message: 'Max 21' }),
         extra_facilities: z
-            .array(
-                z.object({
-                    facility_id: z.number().min(1),
-                    quantity: z.number().min(1),
-                }),
-            )
+            .union([
+                z.array(
+                    z.object({
+                        facility_id: z.number().int().min(1),
+                        quantity: z.number().int().min(1),
+                    }),
+                ),
+                z.undefined(),
+                z.null(),
+            ])
+            .transform((v) => (Array.isArray(v) ? v : []))
             .default([]),
     });
 
@@ -191,6 +191,11 @@ export default function PesanPage({ facilities, poolPrice }: Props) {
 
     const onSubmit = (data: OrderSchema) => {
         try {
+            if (Number(form.getValues('amount')) > maxPoolCapacity) {
+                toast.error(`Jumlah tidak boleh melebihi ${maxPoolCapacity}`);
+                return;
+            }
+
             setCheckouting(true);
             // ambil CSRF token dari meta (aman untuk fetch/axios)
 
