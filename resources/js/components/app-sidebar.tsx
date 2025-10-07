@@ -15,8 +15,8 @@ import {
     managementFasilitas,
     managementKaryawan,
     managementPengguna,
-    riwayatPesanan,
 } from '@/routes';
+import pesan from '@/routes/pesan';
 import { NavGroup, type SharedData } from '@/types';
 import { Link, usePage } from '@inertiajs/react';
 import {
@@ -31,7 +31,8 @@ import AppLogo from './app-logo';
 export function AppSidebar() {
     const { auth } = usePage<SharedData>().props;
     const isAdmin = auth?.user?.role !== 'user';
-    const mainNavItems: NavGroup[] = [
+    const roles = auth?.user?.role;
+    const rawNavItems: NavGroup[] = [
         {
             title: 'Dashboard',
             items: [
@@ -39,6 +40,7 @@ export function AppSidebar() {
                     title: 'Dashboard',
                     href: dashboard(),
                     icon: LayoutGrid,
+                    roles: ['superadmin', 'admin', 'user'],
                 },
             ],
         },
@@ -49,6 +51,7 @@ export function AppSidebar() {
                     title: 'Absensi Karyawan',
                     href: absensiKaryawan(),
                     icon: ChartColumn,
+                    roles: ['superadmin', 'admin'],
                 },
             ],
         },
@@ -59,16 +62,19 @@ export function AppSidebar() {
                     title: 'Pengguna',
                     href: managementPengguna(),
                     icon: User,
+                    roles: ['superadmin'],
                 },
                 {
                     title: 'Karyawan',
                     href: managementKaryawan(),
                     icon: User,
+                    roles: ['superadmin'],
                 },
                 {
                     title: 'Fasilitas',
                     href: managementFasilitas(),
                     icon: Building2,
+                    roles: ['superadmin'],
                 },
             ],
         },
@@ -79,12 +85,23 @@ export function AppSidebar() {
                     title: isAdmin
                         ? 'Kelola Reservasi'
                         : 'Riwayat Pesanan Saya',
-                    href: riwayatPesanan(),
+                    href: pesan.riwayatPesanan(),
                     icon: BookOpen,
+                    roles: ['superadmin', 'admin', 'user'],
                 },
             ],
         },
     ];
+
+    const mainNavItems = rawNavItems
+        .map((item) => ({
+            ...item,
+            items: item.items.filter((item) =>
+                item.roles.includes(roles as 'superadmin' | 'admin' | 'user'),
+            ),
+        }))
+        .filter((item) => item.items.length > 0);
+
     return (
         <Sidebar collapsible="icon" variant="inset">
             <SidebarHeader>

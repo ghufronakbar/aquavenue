@@ -30,7 +30,8 @@ import {
 } from '@/components/ui/table';
 import AppLayout from '@/layouts/app-layout';
 import { formatIdr, initialsFromName } from '@/lib/helper';
-import { dashboard, riwayatPesanan } from '@/routes';
+import { dashboard } from '@/routes';
+import pesan from '@/routes/pesan';
 import { SharedData, type BreadcrumbItem } from '@/types';
 import { Head, router, usePage } from '@inertiajs/react';
 import { format } from 'date-fns';
@@ -123,7 +124,7 @@ export default function RiwayatPesanan({ orders }: { orders: Order[] }) {
         { title: 'Dashboard', href: dashboard().url },
         {
             title: isAdmin ? 'Kelola Reservasi' : 'Riwayat Pesanan Saya',
-            href: riwayatPesanan().url,
+            href: pesan.riwayatPesanan().url,
         },
     ];
 

@@ -1,76 +1,74 @@
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import {
-    ArrowRightIcon,
-    ClockIcon,
-    LucideIcon,
-    PhoneIcon,
-    StarIcon,
-    Waves,
-} from 'lucide-react';
-import { FaRegStar, FaStar } from 'react-icons/fa';
+import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
+import { initialsFromName } from '@/lib/helper';
+import { ArrowRightIcon, ClockIcon, HomeIcon, PhoneIcon } from 'lucide-react';
+import { BsSunglasses } from 'react-icons/bs';
+import { FaLifeRing, FaRegStar, FaStar } from 'react-icons/fa';
+import { IconType } from 'react-icons/lib';
 import LandingLayout from './landing-layout';
 
 interface Facility {
     name: string;
     description: string;
     price: number;
-    icon: LucideIcon;
+    icon: IconType;
 }
 
 const FACILITIES: Facility[] = [
     {
-        name: 'Kolam Renang',
-        description: 'Kolam renang dengan sistem filtrasi terbaik',
+        name: 'Pelampung',
+        description: 'Pelampung anak dan dewasa.',
         price: 100000,
-        icon: Waves,
+        icon: FaLifeRing,
     },
     {
-        name: 'Kolam Renang',
-        description: 'Kolam renang dengan sistem filtrasi terbaik',
-        price: 100000,
-        icon: Waves,
+        name: 'Gazebo',
+        description: 'Gazebo nyaman untuk bersantai.',
+        price: 50000,
+        icon: HomeIcon,
     },
     {
-        name: 'Kolam Renang',
-        description: 'Kolam renang dengan sistem filtrasi terbaik',
+        name: 'Kacamata Renang',
+        description: 'Kacamata renang anti-fog untuk anak & dewasa.',
         price: 100000,
-        icon: Waves,
+        icon: BsSunglasses,
     },
 ];
 
-interface Pricing {
-    name: string;
-    price: number;
-    features: string[];
-}
+// interface Pricing {
+//     name: string;
+//     price: number;
+//     features: string[];
+// }
 
-const PRICING: Pricing[] = [
-    {
-        name: 'Basic',
-        price: 75000,
-        features: ['Kolam Renang', 'Area Santai', 'Parkir Gratis'],
-    },
-    {
-        name: 'Premium',
-        price: 150000,
-        features: [
-            'Kolam Renang',
-            'Gazebo Premium',
-            'Perlengkapan Olahraga',
-            'Welcome Drink',
-        ],
-    },
-    {
-        name: 'Family',
-        price: 250000,
-        features: [
-            'Perlengkapan Olahraga',
-            'Welcome Drink',
-            'Kamar Mandi Dalam',
-        ],
-    },
-];
+// const PRICING: Pricing[] = [
+//     {
+//         name: 'Basic',
+//         price: 75000,
+//         features: ['Kolam Renang', 'Area Santai', 'Parkir Gratis'],
+//     },
+//     {
+//         name: 'Premium',
+//         price: 150000,
+//         features: [
+//             'Kolam Renang',
+//             'Gazebo Premium',
+//             'Perlengkapan Olahraga',
+//             'Welcome Drink',
+//         ],
+//     },
+//     {
+//         name: 'Family',
+//         price: 250000,
+//         features: [
+//             'Perlengkapan Olahraga',
+//             'Welcome Drink',
+//             'Kamar Mandi Dalam',
+//         ],
+//     },
+// ];
 
 interface Testimonial {
     name: string;
@@ -81,38 +79,108 @@ interface Testimonial {
 
 const TESTIMONIAL: Testimonial[] = [
     {
-        name: 'John Doe',
+        name: 'Rizky Pratama',
         rating: 5,
         description:
-            'Lorem ipsum dolor sit amet consectetur adipisicing elit. Quisquam, quos.',
-        image: null,
+            'Proses booking super cepat, dapat kode QR dan tinggal scan saat masuk. Kolamnya bersih, airnya jernih.',
+        image: '/images/avatars/1.jpg',
     },
     {
-        name: 'Jane Doe',
+        name: 'Ayu Wulandari',
         rating: 4,
         description:
-            'Lorem ipsum dolor sit amet consectetur adipisicing elit. Quisquam, quos.',
-        image: '/bg-login.jpg',
-    },
-    {
-        name: 'John Doe',
-        rating: 2,
-        description:
-            'Lorem ipsum dolor sit amet consectetur adipisicing elit. Quisquam, quos.',
+            'Tempatnya nyaman buat keluarga. Lifeguard selalu standby. Weekend agak ramai, saran datang pagi.',
         image: null,
     },
     {
-        name: 'John Doe',
-        rating: 2,
+        name: 'Budi Santoso',
+        rating: 5,
         description:
-            'Lorem ipsum dolor sit amet consectetur adipisicing elit. Quisquam, quos.',
+            'Anak saya ikut kelas renang pemula, pelatihnya sabar dan komunikatif. Pembayaran via QRIS lancar.',
+        image: '/images/avatars/3.jpg',
+    },
+    {
+        name: 'Siti Rahma',
+        rating: 3,
+        description:
+            'Fasilitas oke, kamar bilas bersih. Parkir agak penuh saat sore, tapi reschedule di aplikasi mudah.',
         image: null,
     },
     {
-        name: 'John Doe',
-        rating: 2,
+        name: 'Albertus Yohanes',
+        rating: 5,
         description:
-            'Lorem ipsum dolor sit amet consectetur adipisicing elit. Quisquam, quos.',
+            'Kolam anak hangat, ada area teduh untuk orang tua. Staf ramah dan informatif.',
+        image: '/images/avatars/5.jpg',
+    },
+    {
+        name: 'Nabila Putri',
+        rating: 4,
+        description:
+            'Booking rombongan untuk arisan keluarga berjalan lancar. Harga sesuai. Mungkin bisa tambah kursi santai.',
+        image: '/images/avatars/6.jpg',
+    },
+    {
+        name: 'Dwi Saputra',
+        rating: 5,
+        description:
+            'Cocok buat latihan lap 50m. Jalur jelas, pagi hari relatif sepi. Air tidak terlalu berbau kaporit.',
+        image: null,
+    },
+    {
+        name: 'Laila Amalia',
+        rating: 4,
+        description:
+            'Reservasi melalui website gampang banget. Anak-anak betah di kolam dangkal dengan mainan air.',
+        image: '/images/avatars/8.jpg',
+    },
+    {
+        name: 'Fajar Hidayat',
+        rating: 3,
+        description:
+            'Datang saat hujan, beberapa lantai jadi licin. CS cepat tanggap dan kasih voucher kunjungan ulang.',
+        image: null,
+    },
+    {
+        name: 'Tania Oktaviani',
+        rating: 5,
+        description:
+            'Locker aman, shower air hangat berfungsi semua. Area bersih dan rapi. Recommended!',
+        image: '/images/avatars/10.jpg',
+    },
+    {
+        name: 'Agung Nugroho',
+        rating: 4,
+        description:
+            'Check-in pakai QR super cepat, antri minimal. Kebijakan refund jelas dan transparan.',
+        image: null,
+    },
+    {
+        name: 'Rika Lestari',
+        rating: 5,
+        description:
+            'Bawa bayi, ruang laktasi tersedia dan nyaman. Toiletnya bersih, tisu selalu ada.',
+        image: '/images/avatars/12.jpg',
+    },
+    {
+        name: 'Muhammad Iqbal',
+        rating: 4,
+        description:
+            'Ikut kelas aquafit pagi, instruktur energik. Musik pas, tidak terlalu keras. Bakal langganan.',
+        image: null,
+    },
+    {
+        name: 'Cindy Halim',
+        rating: 5,
+        description:
+            'Area hijau bagus buat foto, ada kafe kecil di sisi kolam. Proses booking mulus tanpa ribet.',
+        image: '/images/avatars/14.jpg',
+    },
+    {
+        name: 'Yudi Kurniawan',
+        rating: 3,
+        description:
+            'Harga weekend sedikit lebih tinggi, tapi sebanding dengan fasilitas. Saran tambah jam malam.',
         image: null,
     },
 ];
@@ -122,8 +190,8 @@ export default function Welcome() {
         <LandingLayout>
             <div className="flex w-full flex-col items-center justify-center">
                 <section
-                    id="hero"
-                    className="relative flex min-h-[calc(100vh-10rem)] w-full flex-col items-center justify-center"
+                    id="beranda"
+                    className="relative flex min-h-[calc(100vh-2rem)] w-full flex-col items-center justify-center"
                 >
                     <div className="absolute inset-0">
                         <div className="absolute inset-0 bg-white opacity-70" />
@@ -134,25 +202,33 @@ export default function Welcome() {
                         />
                     </div>
                     <div className="z-10 mx-auto flex h-full w-full max-w-3xl flex-col items-center justify-center gap-4">
-                        <h1 className="bg-gradient-to-r from-grad-start to-grad-end bg-clip-text text-6xl font-bold text-transparent">
+                        <h1 className="bg-gradient-to-r from-grad-start to-grad-end bg-clip-text text-center text-6xl font-bold text-transparent">
                             AquaVenue Resort
                         </h1>
                         <p className="text-center text-lg text-gray-800">
                             Nikmati pelayanan tak terlupakan dengan fasilitas
                             premium dan pelayanan terbaik untuk keluarga Anda
                         </p>
-                        <div className="flex h-full w-full flex-row items-center justify-center gap-4">
+                        <div className="flex h-full w-full flex-row flex-wrap items-center justify-center gap-4">
                             <button className="flex flex-row items-center justify-center gap-2 rounded-md bg-gradient-to-r from-grad-start to-grad-end px-4 py-2 text-white">
-                                <span>Booking Sekarang</span>
-                                <ArrowRightIcon className="h-4 w-4" />
+                                <a href="/pesan" className="flex flex-row items-center justify-center gap-2">
+                                    <span>Booking Sekarang</span>
+                                    <ArrowRightIcon className="h-4 w-4" />
+                                </a>
                             </button>
                             <div className="flex flex-row items-center justify-center gap-2">
-                                <ClockIcon className="h-4 w-4" />
-                                <p className="text-gray-800">08:00 - 22:00</p>
-                            </div>
-                            <div className="flex flex-row items-center justify-center gap-2">
-                                <PhoneIcon className="h-4 w-4" />
-                                <p className="text-gray-800">0812-3456-7890</p>
+                                <div className="flex flex-row items-center justify-center gap-2">
+                                    <ClockIcon className="h-4 w-4" />
+                                    <p className="text-gray-800">
+                                        08:00 - 22:00
+                                    </p>
+                                </div>
+                                <div className="flex flex-row items-center justify-center gap-2">
+                                    <PhoneIcon className="h-4 w-4" />
+                                    <p className="text-gray-800">
+                                        0812-3456-7890
+                                    </p>
+                                </div>
                             </div>
                         </div>
                         <div className="mt-8 flex h-full w-full flex-row items-center justify-around">
@@ -178,8 +254,8 @@ export default function Welcome() {
                     </div>
                 </section>
                 <section
-                    id="facilities"
-                    className="flex w-full flex-col items-center justify-center px-4 py-8 md:py-16 lg:py-24"
+                    id="pesan"
+                    className="flex w-full flex-col items-center justify-center px-4 py-8 md:py-16 lg:py-24 min-h-[calc(100vh-2rem)]"
                 >
                     <div className="mx-auto flex max-w-3xl flex-col items-center justify-center gap-2">
                         <h2 className="text-4xl font-bold">
@@ -213,14 +289,15 @@ export default function Welcome() {
                                         {`Mulai dari Rp. ${facility.price}`}
                                     </p>
                                     <Button className="mt-4 w-full bg-gradient-to-r from-primary to-primary/80 transition-all duration-300 group-hover:bg-gradient-to-r group-hover:from-grad-start group-hover:to-grad-end group-hover:text-white">
-                                        Booking Sekarang
+                                        <a href="/pesan">Booking Sekarang</a>
                                     </Button>
                                 </CardContent>
                             </Card>
                         ))}
                     </div>
                 </section>
-                <section
+
+                {/* <section
                     id="pricing"
                     className="flex w-full flex-col items-center justify-center px-4 py-8 md:py-16 lg:py-24"
                 >
@@ -272,9 +349,10 @@ export default function Welcome() {
                         ))}
                     </div>
                 </section>
+                 */}
                 <section
-                    id="testimonial"
-                    className="flex w-full flex-col items-center justify-center px-4 py-8 md:py-16 lg:py-24"
+                    id="testimoni"
+                    className="flex w-full flex-col items-center justify-center px-4 py-8 md:py-16 lg:py-24 min-h-[calc(100vh-2rem)]"
                 >
                     <div className="mx-auto flex max-w-3xl flex-col items-center justify-center gap-2">
                         <h2 className="text-4xl font-bold">Testimoni</h2>
@@ -283,57 +361,80 @@ export default function Welcome() {
                             pelayanan kami
                         </p>
                     </div>
-                    <div className="mt-8 flex flex-row items-center justify-center gap-4 px-8">
-                        {TESTIMONIAL.map((testimonial, index) => (
-                            <Card
-                                key={index}
-                                className="group transition-all duration-300 hover:scale-105"
-                            >
-                                <CardContent className="flex flex-col justify-center gap-4 p-4">
-                                    <div className="flex flex-row items-center gap-2">
-                                        <img
-                                            src={
-                                                testimonial.image ||
-                                                '/bg-login.jpg'
-                                            }
-                                            alt={testimonial.name}
-                                            className="h-10 w-10 rounded-full"
-                                        />
-                                        <div className="flex flex-col">
-                                            <p className="font-semibold">
-                                                {testimonial.name}
-                                            </p>
-                                            <div className="flex flex-row items-center">
-                                                {Array.from({
-                                                    length: 5,
-                                                }).map((_, index) => {
-                                                    const isFilled =
-                                                        index <
-                                                        testimonial.rating;
-                                                    return isFilled ? (
-                                                        <FaStar
-                                                            key={index}
-                                                            className="h-4 w-4 text-yellow-500"
-                                                        />
-                                                    ) : (
-                                                        <FaRegStar
-                                                            key={index}
-                                                            className="h-4 w-4 text-gray-500"
-                                                        />
-                                                    );
-                                                })}
+                    <ScrollArea className="w-full">
+                        <div
+                            role="list"
+                            className="grid auto-cols-[minmax(18rem,18rem)] grid-flow-col items-stretch gap-4 p-4 sm:auto-cols-[minmax(20rem,20rem)]"
+                        >
+                            {[...TESTIMONIAL].map((t, i) => (
+                                <Card
+                                    key={i}
+                                    className="group h-full transition-all duration-300 hover:scale-105"
+                                >
+                                    <CardContent className="grid h-full grid-rows-[auto,1fr] gap-4 p-4">
+                                        {/* Header */}
+                                        <div className="flex items-center gap-3">
+                                            <Avatar className="h-10 w-10 shrink-0">
+                                                <AvatarImage
+                                                    src={
+                                                        t.image ||
+                                                        '/bg-login.jpg'
+                                                    }
+                                                    alt={t.name}
+                                                    className="object-cover"
+                                                />
+                                                <AvatarFallback>
+                                                    {initialsFromName(t.name)}
+                                                </AvatarFallback>
+                                            </Avatar>
+
+                                            <div className="min-w-0">
+                                                <p className="truncate font-semibold">
+                                                    {t.name}
+                                                </p>
+                                                <div className="flex items-center">
+                                                    {Array.from({
+                                                        length: 5,
+                                                    }).map((_, si) =>
+                                                        si < t.rating ? (
+                                                            <FaStar
+                                                                key={si}
+                                                                className="h-4 w-4 text-yellow-500"
+                                                            />
+                                                        ) : (
+                                                            <FaRegStar
+                                                                key={si}
+                                                                className="h-4 w-4 text-muted-foreground"
+                                                            />
+                                                        ),
+                                                    )}
+                                                </div>
                                             </div>
                                         </div>
-                                    </div>
-                                    <span className="text-sm text-neutral-500 italic">
-                                        "{testimonial.description}"
-                                    </span>
-                                </CardContent>
-                            </Card>
-                        ))}
-                    </div>
+
+                                        {/* Deskripsi (multi-line, ikut tinggi tertinggi) */}
+                                        <p className="text-sm leading-relaxed text-pretty break-words whitespace-normal text-muted-foreground italic">
+                                            “{t.description}”
+                                        </p>
+                                    </CardContent>
+                                </Card>
+                            ))}
+                        </div>
+                        <ScrollBar orientation="horizontal" />
+                    </ScrollArea>
                 </section>
+                <Footer />
             </div>
         </LandingLayout>
     );
 }
+
+const Footer = () => {
+    return (
+        <div className="flex flex-row items-center justify-center gap-4">
+            <p className="text-sm text-neutral-500">
+                © 2025 AquaVenue Resort. All rights reserved.
+            </p>
+        </div>
+    );
+};

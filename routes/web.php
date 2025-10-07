@@ -1,34 +1,17 @@
 <?php
 
+use Illuminate\Support\Facades\Route;
+use Inertia\Inertia;
 use App\Http\Controllers\Management\ManagementMutateController;
 use App\Http\Controllers\Management\ManagementShowController;
 use App\Http\Controllers\Order\OrderController;
 use App\Http\Controllers\UploadController;
-use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AttendanceController;
-use Inertia\Inertia;
+use App\Http\Controllers\DashboardController;
 
-// Route::get('/', function () {
-//     return Inertia::render('landing/welcome');
-// })->name('home');
 Route::group(['prefix' => ''], function () {
-    Route::get('/', function () {
-        return Inertia::render('landing/welcome');
-    })->name('home');
-    Route::get('testimonial', function () {
-        return Inertia::render('landing/testimonial');
-    })->name('testimonial');
-});
-
-Route::group(['prefix' => 'pesan'], function () {
-    Route::get('', [OrderController::class, 'index'])->name('pesan.index');
-    Route::post('check-pool-capacity', [OrderController::class, 'checkPoolCapacity'])->name('pesan.check-pool-capacity');
-    Route::middleware(['auth'])->group(function () {
-        Route::post('', [OrderController::class, 'store'])->name('pesan.store');
-        Route::get('invoice/{orderId}', [OrderController::class, 'showInvoice'])->name('pesan.invoice.show');
-        Route::post('cancel-order/{orderId}', [OrderController::class, 'cancelOrder'])->name('pesan.cancel-order');
-        Route::post('check-in-out-order', [OrderController::class, 'checkInOutOrder'])->name('pesan.check-in-out-order');
-    });
+    Route::get('/', fn() => Inertia::render('landing/welcome'))->name('home');
+    Route::get('testimonial', fn() => Inertia::render('landing/testimonial'))->name('testimonial');
 });
 
 Route::group(['prefix' => 'upload'], function () {
@@ -36,9 +19,17 @@ Route::group(['prefix' => 'upload'], function () {
 });
 
 Route::middleware(['auth', 'verified'])->group(function () {
-    Route::get('management-pengguna', [ManagementShowController::class, 'showPengguna'])->name('management-pengguna');
 
-    Route::group(['prefix' => 'management-fasilitas'], function () {
+    // Hanya SUPERADMIN
+    Route::get('management-pengguna', [ManagementShowController::class, 'showPengguna'])
+        ->middleware('role:superadmin')
+        ->name('management-pengguna');
+
+    // Hanya SUPERADMIN
+    Route::group([
+        'prefix' => 'management-fasilitas',
+        'middleware' => ['role:superadmin'],
+    ], function () {
         Route::get('', [ManagementShowController::class, 'showFasilitas'])->name('management-fasilitas');
         Route::post('', [ManagementMutateController::class, 'addFasilitas'])->name('management-fasilitas.add');
         Route::put('/{id}', [ManagementMutateController::class, 'editFasilitas'])->name('management-fasilitas.edit');
@@ -46,26 +37,51 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::delete('/{id}', [ManagementMutateController::class, 'deleteFasilitas'])->name('management-fasilitas.delete');
     });
 
-    Route::group(['prefix' => 'management-karyawan'], function () {
+    // Pesan
+    Route::group(['prefix' => 'pesan'], function () {
+        Route::get('', [OrderController::class, 'index'])->middleware('role:user')->name('pesan.index'); // user
+        Route::post('check-pool-capacity', [OrderController::class, 'checkPoolCapacity'])->name('pesan.check-pool-capacity'); // user+admin+superadmin
+        Route::post('', [OrderController::class, 'store'])->middleware('role:user')->name('pesan.store');  // user
+        Route::get('invoice/{orderId}', [OrderController::class, 'showInvoice'])->name('pesan.invoice.show'); // user+admin+superadmin
+        Route::post('cancel-order/{orderId}', [OrderController::class, 'cancelOrder'])->middleware('role:user')->name('pesan.cancel-order'); // user
+
+        // Hanya ADMIN & SUPERADMIN
+        Route::post('check-in-out-order', [OrderController::class, 'checkInOutOrder'])
+            ->middleware('role:admin,superadmin')
+            ->name('pesan.check-in-out-order');
+
+        Route::get('/riwayat', [OrderController::class, 'allHistory'])->name('pesan.riwayat-pesanan'); // user+admin+superadmin
+    });
+
+    // Hanya SUPERADMIN
+    Route::group([
+        'prefix' => 'management-karyawan',
+        'middleware' => ['role:superadmin'],
+    ], function () {
         Route::get('', [ManagementShowController::class, 'showKaryawan'])->name('management-karyawan');
         Route::post('', [ManagementMutateController::class, 'addKaryawan'])->name('management-karyawan.add');
         Route::delete('/{id}', [ManagementMutateController::class, 'deleteKaryawan'])->name('management-karyawan.delete');
     });
 
+    Route::group([
+        'prefix' => 'dashboard',
+    ], function () {
+        Route::get('', [DashboardController::class, 'index'])->name('dashboard'); // semua role
+        Route::get('data', [DashboardController::class, 'data'])->name('dashboard.data'); // semua role
+        Route::post('pool-information', [DashboardController::class, 'updatePoolInformation'])->name('dashboard.pool-information'); // superadmin
+    });
 
-    Route::get('dashboard', function () {
-        return Inertia::render('dashboard');
-    })->name('dashboard');
-
-    Route::group(['prefix' => 'absensi-karyawan'], function () {
+    // Absensi: hanya ADMIN & SUPERADMIN
+    Route::group([
+        'prefix' => 'absensi-karyawan',
+        'middleware' => ['role:admin,superadmin'],
+    ], function () {
         Route::get('', [AttendanceController::class, 'index'])->name('absensi-karyawan');
         Route::post('make-attendance', [AttendanceController::class, 'makeAttendance'])->name('absensi-karyawan.make-attendance');
     });
-
-    Route::group(['prefix' => 'riwayat-pesanan'], function () {
-        Route::get('', [OrderController::class, 'allHistory'])->name('riwayat-pesanan');
-    });
 });
+
+// Route::get('dashboard/data', [DashboardController::class, 'data'])->name('dashboard.data');
 
 require __DIR__ . '/settings.php';
 require __DIR__ . '/auth.php';

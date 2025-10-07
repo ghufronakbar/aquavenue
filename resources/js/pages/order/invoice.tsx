@@ -14,7 +14,7 @@ import {
 import { Separator } from '@/components/ui/separator';
 import { formatIdr } from '@/lib/helper';
 import { SharedData } from '@/types';
-import { usePage } from '@inertiajs/react';
+import { router, usePage } from '@inertiajs/react';
 import { format } from 'date-fns';
 import { CopyIcon, PrinterIcon } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
@@ -131,8 +131,27 @@ export default function InvoicePage({
             onPending() {
                 // biarkan user tetap di invoice (status pending)
             },
-            onError() {
-                // tampilkan notifikasi error jika mau
+            onError(
+                data: { error_messages: string[]; status_code: number } | null,
+            ) {
+                const expiredMessage = 'token has expired';
+                if (
+                    data?.error_messages?.includes(expiredMessage) ||
+                    data?.status_code === 407
+                ) {
+                    console.log('token has expired');
+                    const token = (
+                        document.querySelector(
+                            'meta[name="csrf-token"]',
+                        ) as HTMLMetaElement
+                    )?.content;
+                    router.post(`/pesan/cancel-order/${order.id}`, {
+                        _token: token,
+                    });
+                    window.location.reload();
+                } else {
+                    console.log('token not expired');
+                }
             },
             onClose() {
                 // user menutup pop-up
@@ -383,7 +402,7 @@ export default function InvoicePage({
                             </div>
 
                             {!isAdmin && (
-                                <div className="mt-6 space-y-2">
+                                <div className="mt-6 flex flex-col gap-2">
                                     {canPay && (
                                         <>
                                             <Button
@@ -405,6 +424,11 @@ export default function InvoicePage({
                                             Cetak Invoice
                                         </Button>
                                     )}
+                                    <Button variant="outline">
+                                        <a href={`/pesan/riwayat`}>
+                                            Kembali ke Riwayat Pesanan
+                                        </a>
+                                    </Button>
                                 </div>
                             )}
                         </CardContent>

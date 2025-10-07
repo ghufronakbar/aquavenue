@@ -69,7 +69,7 @@ export function useAppearance() {
         const savedAppearance = localStorage.getItem(
             'appearance',
         ) as Appearance | null;
-        updateAppearance(savedAppearance || 'system');
+        updateAppearance(savedAppearance || 'light');
 
         return () =>
             mediaQuery()?.removeEventListener(

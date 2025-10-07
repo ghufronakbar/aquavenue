@@ -20,6 +20,7 @@ export interface NavItem {
     href: NonNullable<InertiaLinkProps['href']>;
     icon?: LucideIcon | null;
     isActive?: boolean;
+    roles: ('superadmin' | 'admin' | 'user')[];
 }
 
 export interface SharedData {
