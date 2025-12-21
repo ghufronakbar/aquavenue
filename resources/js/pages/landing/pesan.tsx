@@ -48,7 +48,7 @@ interface Props {
     poolPrice: number;
 }
 const HOURS_START = 8;
-const HOURS_END = 21;
+const HOURS_END = 16;
 
 export default function PesanPage({ facilities, poolPrice }: Props) {
     const [checkouting, setCheckouting] = useState(false);
