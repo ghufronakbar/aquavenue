@@ -5,7 +5,6 @@ import { type BreadcrumbItem } from '@/types';
 import { Head } from '@inertiajs/react';
 import { DashboardChartDistribution } from './chart/dashboard-cart-distribution';
 import { DashboardChartTrend } from './chart/dashboard-chart-trend';
-import { DashboardAttendance } from './dashboard-attendance';
 import { DashboardProvider } from './dashboard-context';
 import { DashboardHeader } from './dashboard-header';
 import { DashboardRecentOrder } from './dashboard-recent-order';
@@ -71,11 +70,8 @@ export default function Dashboard() {
                         )}
 
                         <div className="flex h-fit w-full flex-col gap-4">
-                            {visible(['superadmin']) && (
-                                <DashboardAttendance className="h-1/2" />
-                            )}
                             {visible(['admin', 'superadmin', 'user']) && (
-                                <DashboardTopFacilities className="h-1/2" />
+                                <DashboardTopFacilities className="h-full" />
                             )}
                         </div>
                     </div>

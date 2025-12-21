@@ -8,7 +8,7 @@ export default function AppLogo() {
             </div>
             <div className="ml-1 grid flex-1 text-left text-sm">
                 <span className="mb-0.5 truncate leading-tight font-black bg-gradient-to-r from-grad-start to-grad-end text-transparent bg-clip-text">
-                    Aqua Venue
+                    Pandan Wangi
                 </span>
             </div>
         </>

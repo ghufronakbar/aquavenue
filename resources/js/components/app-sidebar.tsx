@@ -10,7 +10,6 @@ import {
     SidebarMenuItem,
 } from '@/components/ui/sidebar';
 import {
-    absensiKaryawan,
     dashboard,
     managementFasilitas,
     managementKaryawan,
@@ -41,17 +40,6 @@ export function AppSidebar() {
                     href: dashboard(),
                     icon: LayoutGrid,
                     roles: ['superadmin', 'admin', 'user'],
-                },
-            ],
-        },
-        {
-            title: 'Absensi Karyawan',
-            items: [
-                {
-                    title: 'Absensi Karyawan',
-                    href: absensiKaryawan(),
-                    icon: ChartColumn,
-                    roles: ['superadmin', 'admin'],
                 },
             ],
         },

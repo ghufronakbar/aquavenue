@@ -16,13 +16,6 @@ interface RecentOrderRow {
     created_at: string;
 }
 
-// ATTENDANCE
-interface AttendanceRow {
-    date: string; // "yyyy-mm-dd"
-    total_ontime: number; // for type "in"
-    total_late: number; // for type "in"
-    total_not_checked: number; // for type "in"
-}
 
 // TOP FACILITY
 interface TopFacilityRow {
@@ -79,7 +72,6 @@ interface DashboardContextType {
     };
     data: {
         recentOrders: RecentOrderRow[];
-        attendance: AttendanceRow[];
         topFacilities: TopFacilityRow[];
         utilization: UtilizationRow;
         kpi: {
@@ -168,7 +160,6 @@ export const DashboardProvider = ({
 
     // STATE DATA
     const [recentOrders, setRecentOrders] = useState<RecentOrderRow[]>([]);
-    const [attendance, setAttendance] = useState<AttendanceRow[]>([]);
     const [topFacilities, setTopFacilities] = useState<TopFacilityRow[]>([]);
     const [utilization, setUtilization] = useState<UtilizationRow>({
         potential: 0,
@@ -201,7 +192,6 @@ export const DashboardProvider = ({
     // MAIN DATA
     const data: DashboardContextType['data'] = {
         recentOrders,
-        attendance,
         topFacilities,
         utilization,
         kpi,
@@ -227,9 +217,6 @@ export const DashboardProvider = ({
         const data = (await response.json()) as DashboardContextType['data'] & {
             poolInformation: PoolInformationRow;
         };
-        if (data?.attendance) {
-            setAttendance(data.attendance);
-        }
         if (data?.recentOrders) {
             setRecentOrders(data.recentOrders);
         }

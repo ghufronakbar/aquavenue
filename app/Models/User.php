@@ -3,7 +3,6 @@
 namespace App\Models;
 
 use App\Enums\Role;
-use App\Models\Attendance;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
@@ -43,10 +42,5 @@ class User extends Authenticatable
     public function orders()
     {
         return $this->hasMany(Order::class);
-    }
-
-    public function attendances()
-    {
-        return $this->hasMany(Attendance::class);
     }
 }

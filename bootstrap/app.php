@@ -31,8 +31,6 @@ return Application::configure(basePath: dirname(__DIR__))
             except: [
                 'pesan/*',
                 'upload',
-                'absensi-karyawan.make-attendance',
-                'absensi-karyawan/*',
             ]
         );
     })

@@ -15,7 +15,6 @@ class DatabaseSeeder extends Seeder
             UserSeeder::class,
             FacilitySeeder::class,
             PoolSeeder::class,
-            InformationSeeder::class,
         ]);
     }
 }

@@ -58,8 +58,8 @@ export default function PesanPage({ facilities, poolPrice }: Props) {
         amount: z.coerce.number().min(1, { message: 'Jumlah harus diisi' }),
         time: z.coerce
             .number()
-            .min(8, { message: 'Min 08' })
-            .max(21, { message: 'Max 21' }),
+            .min(HOURS_START, { message: `Min ${HOURS_START}` })
+            .max(HOURS_END, { message: `Max ${HOURS_END}` }),
         extra_facilities: z
             .union([
                 z.array(
@@ -238,9 +238,10 @@ export default function PesanPage({ facilities, poolPrice }: Props) {
         // default: 08..21
         let minHour = HOURS_START;
 
-        // jika yang dipilih adalah hari ini ⇒ mulai dari jam sekarang + 1
+        // jika yang dipilih adalah hari ini ⇒ mulai dari jam sekarang (tanpa ada +1)
         if (selected && isSameDay(selected, today)) {
-            const nextHour = today.getHours() + 1;
+            // sebelumnya +1, sekarang tidak
+            const nextHour = today.getHours();
             minHour = Math.min(HOURS_END, Math.max(HOURS_START, nextHour));
         }
 
@@ -343,8 +344,8 @@ export default function PesanPage({ facilities, poolPrice }: Props) {
                                                                 selected={
                                                                     field.value
                                                                         ? new Date(
-                                                                              field.value,
-                                                                          )
+                                                                            field.value,
+                                                                        )
                                                                         : undefined
                                                                 }
                                                                 onSelect={(
@@ -352,7 +353,7 @@ export default function PesanPage({ facilities, poolPrice }: Props) {
                                                                 ) => {
                                                                     field.onChange(
                                                                         date?.toISOString() ??
-                                                                            '',
+                                                                        '',
                                                                     );
                                                                     form.setValue(
                                                                         'amount',
@@ -391,12 +392,12 @@ export default function PesanPage({ facilities, poolPrice }: Props) {
                                                             {...field}
                                                             value={
                                                                 field.value ===
-                                                                ''
+                                                                    ''
                                                                     ? ''
                                                                     : String(
-                                                                          field.value ??
-                                                                              '',
-                                                                      )
+                                                                        field.value ??
+                                                                        '',
+                                                                    )
                                                             }
                                                             onChange={(e) => {
                                                                 if (
@@ -438,11 +439,11 @@ export default function PesanPage({ facilities, poolPrice }: Props) {
                                                     </FormControl>
                                                     <FormDescription>
                                                         {!form.watch('date') ||
-                                                        !form.watch('time')
+                                                            !form.watch('time')
                                                             ? 'Harap pilih tanggal dan waktu'
                                                             : maxPoolCapacity
-                                                              ? `Stok tersedia: ${maxPoolCapacity}`
-                                                              : 'Tidak ada stok'}
+                                                                ? `Stok tersedia: ${maxPoolCapacity}`
+                                                                : 'Tidak ada stok'}
                                                     </FormDescription>
                                                     <FormMessage />
                                                 </FormItem>
@@ -578,7 +579,7 @@ export default function PesanPage({ facilities, poolPrice }: Props) {
                                                                 {`Stok: ${item.available_stock}`}
                                                             </span>
                                                             {item.facility_type ===
-                                                            'sell' ? null : (
+                                                                'sell' ? null : (
                                                                 <Badge variant="outline">
                                                                     Sewa
                                                                 </Badge>
@@ -657,10 +658,10 @@ export default function PesanPage({ facilities, poolPrice }: Props) {
                                         <span className="text-sm font-semibold">
                                             {formatIdr(
                                                 poolPrice *
-                                                    Number(
-                                                        form.watch('amount') ||
-                                                            0,
-                                                    ),
+                                                Number(
+                                                    form.watch('amount') ||
+                                                    0,
+                                                ),
                                             )}
                                         </span>
                                     </div>

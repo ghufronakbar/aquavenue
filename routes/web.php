@@ -6,7 +6,6 @@ use App\Http\Controllers\Management\ManagementMutateController;
 use App\Http\Controllers\Management\ManagementShowController;
 use App\Http\Controllers\Order\OrderController;
 use App\Http\Controllers\UploadController;
-use App\Http\Controllers\AttendanceController;
 use App\Http\Controllers\DashboardController;
 
 Route::group(['prefix' => ''], function () {
@@ -69,15 +68,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('', [DashboardController::class, 'index'])->name('dashboard'); // semua role
         Route::get('data', [DashboardController::class, 'data'])->name('dashboard.data'); // semua role
         Route::post('pool-information', [DashboardController::class, 'updatePoolInformation'])->name('dashboard.pool-information'); // superadmin
-    });
-
-    // Absensi: hanya ADMIN & SUPERADMIN
-    Route::group([
-        'prefix' => 'absensi-karyawan',
-        'middleware' => ['role:admin,superadmin'],
-    ], function () {
-        Route::get('', [AttendanceController::class, 'index'])->name('absensi-karyawan');
-        Route::post('make-attendance', [AttendanceController::class, 'makeAttendance'])->name('absensi-karyawan.make-attendance');
     });
 });
 

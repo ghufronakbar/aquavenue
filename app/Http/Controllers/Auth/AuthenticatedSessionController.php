@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 use Inertia\Response;
 use Laravel\Fortify\Features;
+use App\Enums\Role;
 
 class AuthenticatedSessionController extends Controller
 {
@@ -45,7 +46,12 @@ class AuthenticatedSessionController extends Controller
 
         $request->session()->regenerate();
 
-        return redirect()->intended(route('dashboard', absolute: false));
+        if ($user->role === Role::User) {
+            return redirect()->intended(route('pesan.index', absolute: false));
+        } else {
+            return redirect()->intended(route('dashboard', absolute: false));
+        }
+
     }
 
     /**

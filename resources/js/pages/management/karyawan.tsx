@@ -47,7 +47,6 @@ interface DetailKaryawan {
     email: string;
     image: string | null;
     created_at: string;
-    attends_this_month_count: number;
 }
 
 interface Props {
@@ -91,9 +90,6 @@ function KaryawanTable() {
                 <TableHeader>
                     <TableRow>
                         <TableHead className="w-[48%]">Karyawan</TableHead>
-                        <TableHead className="w-[18%]">
-                            Kehadiran Bulan Ini
-                        </TableHead>
                         <TableHead className="w-[18%]">Bergabung</TableHead>
                         <TableHead className="w-[16%]"></TableHead>
                     </TableRow>
@@ -122,7 +118,6 @@ function KaryawanTable() {
                                     </div>
                                 </div>
                             </TableCell>
-                            <TableCell>{u.attends_this_month_count}</TableCell>
                             <TableCell>
                                 {format(new Date(u.created_at), 'dd MMM yyyy')}
                             </TableCell>

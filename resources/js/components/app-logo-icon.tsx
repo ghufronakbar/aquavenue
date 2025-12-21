@@ -6,7 +6,7 @@ export default function AppLogoIcon(
 ) {
     return (
         <div {...props} className={cn('font-bold text-white', props.className)}>
-            AV
+            PW
         </div>
     );
     // return <DropletIcon {...props} />;

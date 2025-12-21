@@ -13,8 +13,8 @@ export default function AuthSplitLayout({
     title,
     description,
 }: PropsWithChildren<AuthLayoutProps>) {
-    const name = 'Aqua Venue';
-    const quote = { message: 'Hidup seperti larry', author: 'Patrick Star' };
+    const name = 'Kolam Renang Pandan Wangi';
+    const quote = { message: 'Temukan berbagai fasilitas berkualitas tinggi yang dirancang untuk memberikan pengalaman terbai', author: 'Pandan Wangi' };
 
     return (
         <div className="relative grid h-dvh flex-col items-center justify-center px-8 sm:px-0 lg:max-w-none lg:grid-cols-2 lg:px-0">

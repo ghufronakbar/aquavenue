@@ -88,7 +88,7 @@ export const ScanCameraOrder = ({ open, onOpenChange }: Props) => {
                     pauseDetectLoop();
 
                     setDetected(raw);
-                    await submitAttendance(raw, typeRef.current);
+                    await submitOrderScan(raw, typeRef.current);
 
                     // kalau masih streaming & belum reload, bisa lanjut scan lagi (delay dikit)
                     if (scanState === 'streaming') {
@@ -189,7 +189,7 @@ export const ScanCameraOrder = ({ open, onOpenChange }: Props) => {
 
     const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
     // SATU PINTU SUBMIT (dipakai kamera & manual)
-    const submitAttendance = async (
+    const submitOrderScan = async (
         orderId: string,
         forcedType?: 'check_in' | 'check_out',
     ) => {
@@ -236,7 +236,7 @@ export const ScanCameraOrder = ({ open, onOpenChange }: Props) => {
         // kunci di awal supaya manual & kamera konsisten
         submittingRef.current = true;
         setIsSubmitting(true);
-        await submitAttendance(code);
+        await submitOrderScan(code);
     };
 
     if (auth?.user?.role == 'user') {
@@ -315,7 +315,7 @@ export const ScanCameraOrder = ({ open, onOpenChange }: Props) => {
                         className={cn(
                             'w-1/2',
                             type === 'check_in' &&
-                                'bg-primary text-primary-foreground',
+                            'bg-primary text-primary-foreground',
                         )}
                     >
                         Check-in
@@ -327,7 +327,7 @@ export const ScanCameraOrder = ({ open, onOpenChange }: Props) => {
                         className={cn(
                             'w-1/2',
                             type === 'check_out' &&
-                                'bg-primary text-primary-foreground',
+                            'bg-primary text-primary-foreground',
                         )}
                     >
                         Check-out
@@ -381,7 +381,7 @@ export const ScanCameraOrder = ({ open, onOpenChange }: Props) => {
 declare global {
     interface Window {
         BarcodeDetector?: {
-            new (options?: { formats?: string[] }): BarcodeDetector;
+            new(options?: { formats?: string[] }): BarcodeDetector;
             getSupportedFormats?: () => Promise<string[]>;
         };
     }

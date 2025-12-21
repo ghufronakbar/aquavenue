@@ -194,7 +194,7 @@ export default function Welcome() {
                     className="relative flex min-h-[calc(100vh-2rem)] w-full flex-col items-center justify-center"
                 >
                     <div className="absolute inset-0">
-                        <div className="absolute inset-0 bg-white opacity-70" />
+                        <div className="absolute inset-0 bg-black opacity-20" />
                         <img
                             src="/hero.jpg"
                             alt="hero"
@@ -202,10 +202,10 @@ export default function Welcome() {
                         />
                     </div>
                     <div className="z-10 mx-auto flex h-full w-full max-w-3xl flex-col items-center justify-center gap-4">
-                        <h1 className="bg-gradient-to-r from-grad-start to-grad-end bg-clip-text text-center text-6xl font-bold text-transparent">
-                            AquaVenue Resort
+                        <h1 className="bg-gradient-to-r from-grad-start to-grad-end bg-clip-text pb-4 text-center text-5xl font-bold text-transparent mb-4 z-10 bg-red-500">
+                            Kolam Renang Pandan Wangi
                         </h1>
-                        <p className="text-center text-lg text-gray-800">
+                        <p className="text-center text-lg text-gray-200">
                             Nikmati pelayanan tak terlupakan dengan fasilitas
                             premium dan pelayanan terbaik untuk keluarga Anda
                         </p>
@@ -220,7 +220,7 @@ export default function Welcome() {
                                 <div className="flex flex-row items-center justify-center gap-2">
                                     <ClockIcon className="h-4 w-4" />
                                     <p className="text-gray-800">
-                                        08:00 - 22:00
+                                        08:00 - 17:00
                                     </p>
                                 </div>
                                 <div className="flex flex-row items-center justify-center gap-2">
@@ -229,26 +229,6 @@ export default function Welcome() {
                                         0812-3456-7890
                                     </p>
                                 </div>
-                            </div>
-                        </div>
-                        <div className="mt-8 flex h-full w-full flex-row items-center justify-around">
-                            <div className="flex flex-col items-center justify-center gap-2">
-                                <div className="text-2xl font-bold text-primary">
-                                    50+
-                                </div>
-                                <p className="text-gray-800">Fasilitas</p>
-                            </div>
-                            <div className="flex flex-col items-center justify-center gap-2">
-                                <div className="text-2xl font-bold text-primary">
-                                    1000+
-                                </div>
-                                <p className="text-gray-800">Happy Customers</p>
-                            </div>
-                            <div className="flex flex-col items-center justify-center gap-2">
-                                <div className="text-2xl font-bold text-primary">
-                                    24/7
-                                </div>
-                                <p className="text-gray-800">Support</p>
                             </div>
                         </div>
                     </div>
@@ -433,7 +413,7 @@ const Footer = () => {
     return (
         <div className="flex flex-row items-center justify-center gap-4">
             <p className="text-sm text-neutral-500">
-                © 2025 AquaVenue Resort. All rights reserved.
+                © 2025 Kolam Renang Pandan Wangi. All rights reserved.
             </p>
         </div>
     );
