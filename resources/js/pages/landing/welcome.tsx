@@ -194,7 +194,7 @@ export default function Welcome() {
                     className="relative flex min-h-[calc(100vh-2rem)] w-full flex-col items-center justify-center"
                 >
                     <div className="absolute inset-0">
-                        <div className="absolute inset-0 bg-black opacity-20" />
+                        <div className="absolute inset-0 bg-black opacity-60" />
                         <img
                             src="/hero.jpg"
                             alt="hero"
@@ -218,14 +218,14 @@ export default function Welcome() {
                             </button>
                             <div className="flex flex-row items-center justify-center gap-2">
                                 <div className="flex flex-row items-center justify-center gap-2">
-                                    <ClockIcon className="h-4 w-4" />
-                                    <p className="text-gray-800">
+                                    <ClockIcon className="h-4 w-4 text-white" />
+                                    <p className="text-gray-200">
                                         08:00 - 17:00
                                     </p>
                                 </div>
                                 <div className="flex flex-row items-center justify-center gap-2">
-                                    <PhoneIcon className="h-4 w-4" />
-                                    <p className="text-gray-800">
+                                    <PhoneIcon className="h-4 w-4 text-white" />
+                                    <p className="text-gray-200">
                                         0812-3456-7890
                                     </p>
                                 </div>
