@@ -7,17 +7,10 @@ import { cn } from '@/lib/utils';
 import pesan from '@/routes/pesan';
 import { SharedData } from '@/types';
 import { router, usePage } from '@inertiajs/react';
-import { Camera, CameraOff, Loader2, QrCode, ScanIcon } from 'lucide-react';
+import { Scanner } from '@yudiel/react-qr-scanner';
+import { Loader2, ScanIcon, QrCode } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
-
-type ScanState =
-    | 'idle'
-    | 'requesting-permission'
-    | 'streaming'
-    | 'no-permission'
-    | 'not-supported'
-    | 'error';
 
 interface Props {
     open: boolean;
@@ -26,220 +19,95 @@ interface Props {
 
 export const ScanCameraOrder = ({ open, onOpenChange }: Props) => {
     const { auth } = usePage<SharedData>().props;
-    const videoRef = useRef<HTMLVideoElement | null>(null);
-    const streamRef = useRef<MediaStream | null>(null);
-    const timerRef = useRef<number | null>(null);
-    const detectorRef = useRef<BarcodeDetector | null>(null);
+
+    // State
     const [type, setType] = useState<'check_in' | 'check_out'>('check_in');
-    const typeRef = useRef<'check_in' | 'check_out'>(type);
-
-    useEffect(() => {
-        typeRef.current = type;
-        lastAttemptRef.current = { code: null, at: 0 };
-    }, [type]);
-
-    const [scanState, setScanState] = useState<ScanState>('idle');
-    const [detected, setDetected] = useState<string | null>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [manualCode, setManualCode] = useState('');
 
-    // === LOCKS & COOLDOWN ===
-    const submittingRef = useRef(false); // kunci sinkron (instan)
-    const lastAttemptRef = useRef<{ code: string | null; at: number }>({
-        code: null,
-        at: 0,
-    });
-    const SCAN_COOLDOWN_MS = 2500;
-
-    const pauseDetectLoop = () => {
-        if (timerRef.current) {
-            window.clearInterval(timerRef.current);
-            timerRef.current = null;
-        }
-    };
-
-    const beginDetectLoop = () => {
-        if (!detectorRef.current || !videoRef.current) return;
-        // sampling setiap 350ms biar irit
-        timerRef.current = window.setInterval(async () => {
-            try {
-                if (!videoRef.current) return;
-                if (submittingRef.current) return; // sudah submitting? jangan deteksi dulu
-                const codes = await detectorRef?.current?.detect(
-                    videoRef.current,
-                );
-                if (codes && codes.length > 0) {
-                    const raw = codes[0].rawValue?.trim();
-                    if (!raw) return;
-
-                    // cooldown kode yang sama biar nggak kebanjiran
-                    const now = Date.now();
-                    if (
-                        lastAttemptRef.current.code === raw &&
-                        now - lastAttemptRef.current.at < SCAN_COOLDOWN_MS
-                    ) {
-                        return;
-                    }
-                    lastAttemptRef.current = { code: raw, at: now };
-
-                    // kunci dulu sebelum submit; pause loop biar aman
-                    submittingRef.current = true;
-                    setIsSubmitting(true);
-                    pauseDetectLoop();
-
-                    setDetected(raw);
-                    await submitOrderScan(raw, typeRef.current);
-
-                    // kalau masih streaming & belum reload, bisa lanjut scan lagi (delay dikit)
-                    if (scanState === 'streaming') {
-                        setTimeout(() => {
-                            if (!timerRef.current && !submittingRef.current) {
-                                beginDetectLoop();
-                            }
-                        }, 1000);
-                    }
-                }
-            } catch (err) {
-                // abaikan error deteksi
-                console.debug(err);
-            }
-        }, 350);
-    };
-
-    // start camera
-    const startCamera = async () => {
-        setDetected(null);
-        if (!('BarcodeDetector' in window)) {
-            setScanState('not-supported');
-            toast.message(
-                'Perangkat tidak mendukung scan native, gunakan input manual.',
-            );
-            return;
-        }
-
-        try {
-            setScanState('requesting-permission');
-
-            try {
-                if (window.BarcodeDetector) {
-                    detectorRef.current = new window.BarcodeDetector({
-                        formats: ['qr_code'],
-                    });
-                }
-            } catch {
-                detectorRef.current = null;
-            }
-            if (!detectorRef.current) {
-                setScanState('not-supported');
-                toast.message(
-                    'Barcode detector tidak tersedia. Gunakan input manual.',
-                );
-                return;
-            }
-
-            const stream = await navigator.mediaDevices.getUserMedia({
-                video: { facingMode: { ideal: 'environment' } },
-                audio: false,
-            });
-
-            streamRef.current = stream;
-            if (videoRef.current) {
-                videoRef.current.srcObject = stream;
-                await videoRef.current.play();
-            }
-
-            setScanState('streaming');
-            beginDetectLoop();
-        } catch (err) {
-            const e = err as Error;
-            if (e?.name === 'NotAllowedError') {
-                setScanState('no-permission');
-                toast.error('Izin kamera ditolak.');
-            } else {
-                setScanState('error');
-                toast.error('Gagal mengakses kamera.');
-                console.error(e);
-            }
-        }
-    };
-
-    const stopCamera = () => {
-        pauseDetectLoop();
-        if (videoRef.current) {
-            try {
-                videoRef.current.pause();
-                videoRef.current.srcObject = null;
-            } catch {
-                // ignore
-            }
-        }
-        if (streamRef.current) {
-            streamRef.current.getTracks().forEach((t) => t.stop());
-            streamRef.current = null;
-        }
-        setScanState('idle');
-    };
-
+    // Ref untuk menjaga state tipe scan saat callback scanner berjalan
+    const typeRef = useRef<'check_in' | 'check_out'>(type);
     useEffect(() => {
-        return () => {
-            stopCamera();
-        };
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
+        typeRef.current = type;
+    }, [type]);
+
+    // Reset saat dialog dibuka/tutup
+    useEffect(() => {
+        if (open) {
+            setIsSubmitting(false);
+            setManualCode('');
+        }
+    }, [open]);
 
     const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
-    // SATU PINTU SUBMIT (dipakai kamera & manual)
+
+    // Fungsi Submit Utama (digunakan oleh Scanner & Manual Input)
     const submitOrderScan = async (
         orderId: string,
-        forcedType?: 'check_in' | 'check_out',
     ) => {
+        if (isSubmitting) return; // Cegah double submit
+
+        setIsSubmitting(true);
+        const currentType = typeRef.current;
+
         try {
+            // Ambil CSRF token
             const token =
-                (
-                    document.querySelector(
-                        'meta[name="csrf-token"]',
-                    ) as HTMLMetaElement
-                )?.content ?? '';
-            const currentType = forcedType ?? typeRef.current; // ← pastikan selalu yang terbaru
+                (document.querySelector('meta[name="csrf-token"]') as HTMLMetaElement)?.content ?? '';
+
             const payload = { orderId, type: currentType, _token: token };
-            console.log({ payload });
 
             router.post(pesan.checkInOutOrder().url, payload, {
                 preserveScroll: true,
                 onSuccess: async () => {
-                    await sleep(3000);
-                    submittingRef.current = false;
+                    toast.success(`Berhasil ${currentType === 'check_in' ? 'Check-in' : 'Check-out'}`, {
+                        description: `Kode: ${orderId}`
+                    });
+
+                    // Jeda sebentar agar user lihat notifikasi sebelum kamera aktif lagi
+                    await sleep(2000);
                     setIsSubmitting(false);
-                    setDetected(null);
-                    startCamera();
                     setManualCode('');
                 },
+                onError: (errors) => {
+                    console.error(errors);
+                    // Jika error validasi, izinkan scan lagi segera
+                    setIsSubmitting(false);
+                },
+                onFinish: () => {
+                    // Pastikan loading mati jika ada error jaringan dsb
+                    // setIsSubmitting(false); // Opsional: biarkan logic onSuccess/onError yang handle
+                }
             });
         } catch (e) {
             console.error(e);
-            toast.error('Gagal terhubung ke server.');
-        } finally {
-            submittingRef.current = false;
+            toast.error('Terjadi kesalahan sistem.');
             setIsSubmitting(false);
         }
     };
 
+    // Handler saat QR terdeteksi
+    const handleScan = (detectedCodes: { rawValue: string }[]) => {
+        if (detectedCodes.length > 0 && !isSubmitting) {
+            const rawValue = detectedCodes[0].rawValue;
+            if (rawValue) {
+                submitOrderScan(rawValue);
+            }
+        }
+    };
+
+    // Handler Submit Manual
     const onSubmitManual = async (e: React.FormEvent) => {
         e.preventDefault();
         const code = manualCode.trim();
         if (!code) {
-            toast.message('Masukkan kode terlebih dahulu.');
+            toast.warning('Masukkan kode terlebih dahulu.');
             return;
         }
-        if (submittingRef.current) return;
-
-        // kunci di awal supaya manual & kamera konsisten
-        submittingRef.current = true;
-        setIsSubmitting(true);
         await submitOrderScan(code);
     };
 
-    if (auth?.user?.role == 'user') {
+    if (auth?.user?.role === 'user') {
         return null;
     }
 
@@ -258,56 +126,13 @@ export const ScanCameraOrder = ({ open, onOpenChange }: Props) => {
                             Scan QR Code
                         </div>
                         <div className="text-sm text-muted-foreground">
-                            Arahkan kamera ke QR Code untuk melakukan
-                            check-in/check-out atau masukkan kode manual di
-                            bawah.
+                            Mode: <b>{type === 'check_in' ? 'Check-In' : 'Check-Out'}</b>
                         </div>
-                    </div>
-
-                    <div className="flex flex-wrap items-center gap-2">
-                        {scanState === 'streaming' ? (
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={stopCamera}
-                                disabled={isSubmitting}
-                            >
-                                <CameraOff className="mr-2 h-4 w-4" />
-                                Matikan Kamera
-                            </Button>
-                        ) : (
-                            <Button
-                                size="sm"
-                                onClick={startCamera}
-                                disabled={isSubmitting}
-                            >
-                                <Camera className="mr-2 h-4 w-4" />
-                                Nyalakan Kamera
-                            </Button>
-                        )}
-
-                        <Badge variant="outline">
-                            {scanState === 'idle' && 'Siap'}
-                            {scanState === 'requesting-permission' &&
-                                'Meminta izin kamera…'}
-                            {scanState === 'streaming' && 'Memindai…'}
-                            {scanState === 'no-permission' &&
-                                'Izin kamera ditolak'}
-                            {scanState === 'not-supported' &&
-                                'Pemindaian tidak didukung'}
-                            {scanState === 'error' && 'Galat kamera'}
-                        </Badge>
-
-                        {detected && (
-                            <Badge>
-                                <QrCode className="mr-1 h-3 w-3" />
-                                {detected}
-                            </Badge>
-                        )}
                     </div>
                 </CardHeader>
 
-                <div className="flex w-full items-center gap-2">
+                {/* Tombol Switch Mode */}
+                <div className="flex w-full items-center gap-2 mt-2">
                     <Button
                         variant="outline"
                         size="sm"
@@ -315,8 +140,9 @@ export const ScanCameraOrder = ({ open, onOpenChange }: Props) => {
                         className={cn(
                             'w-1/2',
                             type === 'check_in' &&
-                            'bg-primary text-primary-foreground',
+                            'bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground',
                         )}
+                        disabled={isSubmitting}
                     >
                         Check-in
                     </Button>
@@ -327,67 +153,77 @@ export const ScanCameraOrder = ({ open, onOpenChange }: Props) => {
                         className={cn(
                             'w-1/2',
                             type === 'check_out' &&
-                            'bg-primary text-primary-foreground',
+                            'bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground',
                         )}
+                        disabled={isSubmitting}
                     >
                         Check-out
                     </Button>
                 </div>
 
-                <CardContent className="flex flex-1 flex-col items-center justify-center gap-6 px-0">
-                    {/* CAMERA PREVIEW */}
-                    <div className="relative w-full max-w-xl">
-                        <div className="relative aspect-video w-full overflow-hidden rounded-lg border">
-                            <video
-                                ref={videoRef}
-                                className="size-full object-cover"
-                                muted
-                                playsInline
-                                autoPlay
+                <CardContent className="flex flex-1 flex-col items-center justify-center gap-6 px-0 mt-4">
+                    {/* AREA KAMERA */}
+                    <div className="relative w-full aspect-square max-w-[300px] overflow-hidden rounded-lg border bg-black shadow-inner">
+                        {/* Render Scanner hanya jika dialog buka agar hemat resource */}
+                        {open && (
+                            <Scanner
+                                onScan={handleScan}
+                                // Matikan scan jika sedang submitting agar tidak double-scan
+                                paused={isSubmitting}
+                                components={{
+                                    // audio: false,   // Matikan suara bip bawaan
+                                    torch: false,
+                                    finder: true,   // Tampilkan kotak pembidik
+                                }}
+                                styles={{
+                                    container: { width: '100%', height: '100%' },
+                                    video: { objectFit: 'cover' }
+                                }}
+                                // Delay antar scan (ms) untuk mencegah spam
+                                scanDelay={2000}
                             />
-                            {scanState === 'streaming' && (
-                                <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-                                    <div className="h-40 w-40 rounded-md border-2 border-white/70 shadow-[0_0_0_100vmax_rgba(0,0,0,0.35)]" />
-                                </div>
-                            )}
-                        </div>
+                        )}
+
+                        {/* Loading Overlay saat memproses */}
+                        {isSubmitting && (
+                            <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/60 z-20 text-white backdrop-blur-[2px]">
+                                <Loader2 className="h-10 w-10 animate-spin mb-2" />
+                                <span className="text-sm font-medium">Memproses...</span>
+                            </div>
+                        )}
                     </div>
 
-                    {/* MANUAL INPUT */}
-                    <form
-                        onSubmit={onSubmitManual}
-                        className="flex w-full max-w-md items-center gap-2 px-4 md:px-0"
-                    >
-                        <Input
-                            placeholder="Masukkan kode pesanan…"
-                            value={manualCode}
-                            onChange={(e) => setManualCode(e.target.value)}
-                            disabled={isSubmitting}
-                        />
-                        <Button type="submit" disabled={isSubmitting}>
-                            {isSubmitting ? (
-                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            ) : null}
-                            {type === 'check_in' ? 'Check-in' : 'Check-out'}
-                        </Button>
-                    </form>
+                    {/* MANUAL INPUT SECTION */}
+                    <div className="w-full space-y-2">
+                        <div className="flex items-center gap-2">
+                            <div className="h-px flex-1 bg-border" />
+                            <span className="text-xs text-muted-foreground">ATAU MANUAL</span>
+                            <div className="h-px flex-1 bg-border" />
+                        </div>
+
+                        <form
+                            onSubmit={onSubmitManual}
+                            className="flex w-full items-center gap-2"
+                        >
+                            <Input
+                                placeholder="Kode pesanan (contoh: TRX-123)"
+                                value={manualCode}
+                                onChange={(e) => setManualCode(e.target.value)}
+                                disabled={isSubmitting}
+                                className="flex-1"
+                            />
+                            <Button type="submit" disabled={isSubmitting}>
+                                {isSubmitting ? (
+                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                ) : (
+                                    <QrCode className="mr-2 h-4 w-4" />
+                                )}
+                                Proses
+                            </Button>
+                        </form>
+                    </div>
                 </CardContent>
             </DialogContent>
         </Dialog>
     );
 };
-
-// TS helpers
-declare global {
-    interface Window {
-        BarcodeDetector?: {
-            new(options?: { formats?: string[] }): BarcodeDetector;
-            getSupportedFormats?: () => Promise<string[]>;
-        };
-    }
-    interface BarcodeDetector {
-        detect: (
-            source: CanvasImageSource | ImageBitmap | HTMLVideoElement,
-        ) => Promise<Array<{ rawValue: string }>>;
-    }
-}
