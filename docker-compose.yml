@@ -6,10 +6,8 @@ services:
     container_name: pandan_app
     restart: always
     working_dir: /var/www
-    # Di production, kita tidak mount code local (.) ke container
-    # agar menggunakan code hasil build di Dockerfile
     env_file:
-      - .env.production
+      - .env
     networks:
       - pandan-network
 
@@ -21,15 +19,23 @@ services:
       - "80:80"
       - "443:443"
     volumes:
-      - ./public:/var/www/public # Hanya mount public asset
+      - ./public:/var/www/public
       - ./nginx/conf.d/:/etc/nginx/conf.d/
-      # Uncomment baris bawah ini jika nanti sudah generate SSL via Certbot
-      - ./certbot/conf:/etc/letsencrypt
+      # Tambahkan 2 baris ini untuk sharing sertifikat SSL
       - ./certbot/www:/var/www/certbot
+      - ./certbot/conf:/etc/letsencrypt
     networks:
       - pandan-network
     depends_on:
       - app
+
+  # Tambahkan service Certbot ini
+  certbot:
+    image: certbot/certbot
+    container_name: pandan_certbot
+    volumes:
+      - ./certbot/www:/var/www/certbot
+      - ./certbot/conf:/etc/letsencrypt
 
   db:
     image: mysql:8.0
