@@ -1,0 +1,12 @@
+.git
+.env
+docker-compose.yml
+docker-compose.local.yml
+Dockerfile
+README.md
+vendor/
+node_modules/
+public/build/
+certbot/
+backup/
+storage/logs/*.log
