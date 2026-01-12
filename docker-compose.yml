@@ -24,8 +24,8 @@ services:
       - ./public:/var/www/public # Hanya mount public asset
       - ./nginx/conf.d/:/etc/nginx/conf.d/
       # Uncomment baris bawah ini jika nanti sudah generate SSL via Certbot
-      # - ./certbot/conf:/etc/letsencrypt
-      # - ./certbot/www:/var/www/certbot
+      - ./certbot/conf:/etc/letsencrypt
+      - ./certbot/www:/var/www/certbot
     networks:
       - pandan-network
     depends_on:
