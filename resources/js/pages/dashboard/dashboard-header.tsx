@@ -143,9 +143,9 @@ const PoolInformationDialog = () => {
                         Terakhir diubah:{' '}
                         {poolInformation.value.updated_at
                             ? format(
-                                  new Date(poolInformation.value.updated_at),
-                                  'dd MMM yyyy HH:mm',
-                              )
+                                new Date(poolInformation.value.updated_at),
+                                'dd MMM yyyy HH:mm',
+                            )
                             : '-'}
                     </DialogDescription>
                 </DialogHeader>
@@ -161,7 +161,7 @@ const PoolInformationDialog = () => {
                             name="price"
                             render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel>Harga per jam</FormLabel>
+                                    <FormLabel>Harga</FormLabel>
                                     <FormControl>
                                         <Input
                                             {...field}
