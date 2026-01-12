@@ -11,6 +11,7 @@ use App\Models\OrderDetail;
 use App\Models\Pool;
 use App\Models\User;
 use App\Services\Payments\MidtransService;
+use Hoa\Compiler\Exception\Exception;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -21,6 +22,7 @@ use PhpParser\Node\Stmt\TryCatch;
 use Illuminate\Support\Str;
 use App\Http\Controllers\Controller;
 use Carbon\Carbon;
+use Throwable;
 
 class OrderController extends Controller
 {
@@ -53,7 +55,7 @@ class OrderController extends Controller
     public function store(Request $request)
     {
         $user = Auth::user();
-        if (! $user?->role || $user->role != Role::User) {
+        if (!$user?->role || $user->role != Role::User) {
             return redirect()->route('login');
         }
 
@@ -70,7 +72,7 @@ class OrderController extends Controller
         // Jika method-mu tidak menerima argumen, pakai: $availablePool = Pool::availableCapacity();
         $availablePool = Pool::availableCapacity($validated['date'], $validated['time']);
 
-        if ((int)$validated['amount'] > (int)$availablePool["data"]) {
+        if ((int) $validated['amount'] > (int) $availablePool["data"]) {
             return back()
                 ->withErrors(['amount' => "Jumlah melebihi kapasitas tersedia ({$availablePool['data']})."])
                 ->withInput();
@@ -81,7 +83,7 @@ class OrderController extends Controller
             ->groupBy('facility_id')
             ->map(fn($rows, $fid) => [
                 'facility_id' => (int) $fid,
-                'quantity'    => (int) $rows->sum('quantity'),
+                'quantity' => (int) $rows->sum('quantity'),
             ])
             ->values();
 
@@ -113,14 +115,14 @@ class OrderController extends Controller
                 $qty = (int) $row['quantity'];
 
                 $facility = $facilities->get($fid);
-                if (! $facility) {
+                if (!$facility) {
                     throw ValidationException::withMessages([
                         'extra_facilities' => "Fasilitas #{$fid} tidak ditemukan.",
                     ]);
                 }
 
 
-                if ((int)$facility->available_stock < $qty) {
+                if ((int) $facility->available_stock < $qty) {
                     throw ValidationException::withMessages([
                         'extra_facilities' => "Stok {$facility->facility_name} tidak cukup (tersisa {$facility->available_stock}).",
                     ]);
@@ -132,9 +134,9 @@ class OrderController extends Controller
 
                 $lines[] = [
                     'facility_id' => $fid,
-                    'quantity'    => $qty,
-                    'price'       => $price,
-                    'total'       => $lineTotal,
+                    'quantity' => $qty,
+                    'price' => $price,
+                    'total' => $lineTotal,
                     'facility_type' => $facility->facility_type,
                 ];
             }
@@ -147,12 +149,12 @@ class OrderController extends Controller
             $midtrans = MidtransService::make();
             $snap = $midtrans->checkout([
                 'transaction_details' => [
-                    'order_id'     => $orderId,
+                    'order_id' => $orderId,
                     'gross_amount' => (int) $total,
                 ],
                 'customer_details' => [
                     'first_name' => $user->name,
-                    'email'      => $user->email,
+                    'email' => $user->email,
                 ],
                 'callbacks' => [
                     'finish' => route('pesan.invoice.show', $orderId),
@@ -171,14 +173,14 @@ class OrderController extends Controller
 
             // 5) Buat order
             $order = Order::create([
-                'id'       => $orderId,
-                'user_id'  => $user->id,
-                'date'     => $date,
-                'time'     => (int) $validated['time'],
-                'amount'   => (int) $validated['amount'],
+                'id' => $orderId,
+                'user_id' => $user->id,
+                'date' => $date,
+                'time' => (int) $validated['time'],
+                'amount' => (int) $validated['amount'],
                 'subtotal' => $subtotal,
-                'tax'      => $tax,
-                'total'    => $total,
+                'tax' => $tax,
+                'total' => $total,
                 'status' => OrderStatus::Pending,
                 'midtrans_snap_token' => $midtransSnapToken,
                 'midtrans_redirect_url' => $midtransRedirectUrl,
@@ -188,11 +190,11 @@ class OrderController extends Controller
             // 6) Buat order details + (opsional) kurangi stok untuk SELL
             foreach ($lines as $line) {
                 OrderDetail::create([
-                    'order_id'    => $order->id,
+                    'order_id' => $order->id,
                     'facility_id' => $line['facility_id'],
-                    'quantity'    => $line['quantity'],
-                    'price'       => $line['price'],
-                    'total'       => $line['total'],
+                    'quantity' => $line['quantity'],
+                    'price' => $line['price'],
+                    'total' => $line['total'],
                 ]);
             }
 
@@ -239,8 +241,12 @@ class OrderController extends Controller
     public function cancelOrder(Request $request)
     {
         $order = Order::find($request->orderId);
-        $midtrans = MidtransService::make();
-        $cancel = $midtrans->cancel($order->id);
+        try {
+            $midtrans = MidtransService::make();
+            $cancel = $midtrans->cancel($order->id);
+        } catch (Throwable $e) {
+            // do nothing
+        }
         $order->status = OrderStatus::Cancelled;
         $order->save();
         return response()->json($cancel, 200);

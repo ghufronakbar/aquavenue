@@ -1,0 +1,53 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: pandan_app
+    restart: always
+    working_dir: /var/www
+    # Di production, kita tidak mount code local (.) ke container
+    # agar menggunakan code hasil build di Dockerfile
+    env_file:
+      - .env.production
+    networks:
+      - pandan-network
+
+  webserver:
+    image: nginx:alpine
+    container_name: pandan_nginx
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./public:/var/www/public # Hanya mount public asset
+      - ./nginx/conf.d/:/etc/nginx/conf.d/
+      # Uncomment baris bawah ini jika nanti sudah generate SSL via Certbot
+      # - ./certbot/conf:/etc/letsencrypt
+      # - ./certbot/www:/var/www/certbot
+    networks:
+      - pandan-network
+    depends_on:
+      - app
+
+  db:
+    image: mysql:8.0
+    container_name: pandan_db
+    restart: always
+    environment:
+      MYSQL_DATABASE: pandanwangi
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_PASSWORD: rootpassword
+    volumes:
+      - dbdata_prod:/var/lib/mysql
+      - ./backup/pandan-backup.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - pandan-network
+
+networks:
+  pandan-network:
+    driver: bridge
+
+volumes:
+  dbdata_prod:

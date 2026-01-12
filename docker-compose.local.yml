@@ -1,0 +1,50 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: pandan_app
+    restart: unless-stopped
+    working_dir: /var/www
+    volumes:
+      - ./:/var/www # Mount code agar bisa diedit di local (optional untuk production)
+    env_file:
+      - .env.production
+    networks:
+      - pandan-network
+
+  webserver:
+    image: nginx:alpine
+    container_name: pandan_nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    volumes:
+      - ./:/var/www
+      - ./nginx/conf.d/:/etc/nginx/conf.d/
+    networks:
+      - pandan-network
+    depends_on:
+      - app
+
+  db:
+    image: mysql:8.0
+    container_name: pandan_db
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: pandanwangi
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_PASSWORD: rootpassword
+    volumes:
+      - dbdata:/var/lib/mysql
+      # Magic folder: file SQL disini akan otomatis dieksekusi saat container pertama kali dibuat
+      - ./backup/pandan-backup.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - pandan-network
+
+networks:
+  pandan-network:
+    driver: bridge
+
+volumes:
+  dbdata:
