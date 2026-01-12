@@ -249,7 +249,7 @@ class OrderController extends Controller
         }
         $order->status = OrderStatus::Cancelled;
         $order->save();
-        return response()->json($cancel, 200);
+        return response()->json(null, 200);
     }
 
     public function allHistory()
