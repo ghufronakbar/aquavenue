@@ -62,7 +62,7 @@ export function AppSidebar() {
                     title: 'Fasilitas',
                     href: managementFasilitas(),
                     icon: Building2,
-                    roles: ['superadmin'],
+                    roles: ['superadmin', 'admin'],
                 },
             ],
         },

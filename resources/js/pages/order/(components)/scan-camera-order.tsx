@@ -1,16 +1,23 @@
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { CardContent, CardHeader } from '@/components/ui/card';
-import { Dialog, DialogContent, DialogTrigger, DialogTitle, DialogDescription } from '@/components/ui/dialog'; // Tambah Title/Desc
+import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import pesan from '@/routes/pesan';
 import { SharedData } from '@/types';
 import { router, usePage } from '@inertiajs/react';
-import { Scanner } from '@yudiel/react-qr-scanner';
-import { Loader2, ScanIcon, QrCode, AlertCircle, RefreshCcw } from 'lucide-react';
+import { Camera, CameraOff, Loader2, QrCode, ScanIcon } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
+
+type ScanState =
+    | 'idle'
+    | 'requesting-permission'
+    | 'streaming'
+    | 'no-permission'
+    | 'not-supported'
+    | 'error';
 
 interface Props {
     open: boolean;
@@ -19,131 +26,201 @@ interface Props {
 
 export const ScanCameraOrder = ({ open, onOpenChange }: Props) => {
     const { auth } = usePage<SharedData>().props;
-
-    // State
+    const videoRef = useRef<HTMLVideoElement | null>(null);
+    const streamRef = useRef<MediaStream | null>(null);
+    const timerRef = useRef<number | null>(null);
+    const detectorRef = useRef<BarcodeDetector | null>(null);
     const [type, setType] = useState<'check_in' | 'check_out'>('check_in');
-    const [isSubmitting, setIsSubmitting] = useState(false);
-    const [manualCode, setManualCode] = useState('');
-
-    // State Kamera
-    const [isInitializing, setIsInitializing] = useState(true);
-    const [activeDeviceId, setActiveDeviceId] = useState<string | undefined>(undefined);
-    const [cameraError, setCameraError] = useState<string | null>(null);
-
     const typeRef = useRef<'check_in' | 'check_out'>(type);
 
     useEffect(() => {
         typeRef.current = type;
+        lastAttemptRef.current = { code: null, at: 0 };
     }, [type]);
 
-    // === LOGIC PENEMUAN KAMERA (PRE-FLIGHT) ===
-    useEffect(() => {
-        let stream: MediaStream | null = null;
+    const [scanState, setScanState] = useState<ScanState>('idle');
+    const [detected, setDetected] = useState<string | null>(null);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [manualCode, setManualCode] = useState('');
 
-        const initializeCamera = async () => {
-            if (!open) {
-                // Reset semua saat tutup
-                setActiveDeviceId(undefined);
-                setCameraError(null);
-                setIsInitializing(false);
+    // === LOCKS & COOLDOWN ===
+    const submittingRef = useRef(false); // kunci sinkron (instan)
+    const lastAttemptRef = useRef<{ code: string | null; at: number }>({
+        code: null,
+        at: 0,
+    });
+    const SCAN_COOLDOWN_MS = 2500;
+
+    const pauseDetectLoop = () => {
+        if (timerRef.current) {
+            window.clearInterval(timerRef.current);
+            timerRef.current = null;
+        }
+    };
+
+    const beginDetectLoop = () => {
+        if (!detectorRef.current || !videoRef.current) return;
+        // sampling setiap 350ms biar irit
+        timerRef.current = window.setInterval(async () => {
+            try {
+                if (!videoRef.current) return;
+                if (submittingRef.current) return; // sudah submitting? jangan deteksi dulu
+                const codes = await detectorRef?.current?.detect(
+                    videoRef.current,
+                );
+                if (codes && codes.length > 0) {
+                    const raw = codes[0].rawValue?.trim();
+                    if (!raw) return;
+
+                    // cooldown kode yang sama biar nggak kebanjiran
+                    const now = Date.now();
+                    if (
+                        lastAttemptRef.current.code === raw &&
+                        now - lastAttemptRef.current.at < SCAN_COOLDOWN_MS
+                    ) {
+                        return;
+                    }
+                    lastAttemptRef.current = { code: raw, at: now };
+
+                    // kunci dulu sebelum submit; pause loop biar aman
+                    submittingRef.current = true;
+                    setIsSubmitting(true);
+                    pauseDetectLoop();
+
+                    setDetected(raw);
+                    await submitOrderScan(raw, typeRef.current);
+
+                    // kalau masih streaming & belum reload, bisa lanjut scan lagi (delay dikit)
+                    if (scanState === 'streaming') {
+                        setTimeout(() => {
+                            if (!timerRef.current && !submittingRef.current) {
+                                beginDetectLoop();
+                            }
+                        }, 1000);
+                    }
+                }
+            } catch (err) {
+                // abaikan error deteksi
+                console.debug(err);
+            }
+        }, 350);
+    };
+
+    // start camera
+    const startCamera = async () => {
+        setDetected(null);
+        if (!('BarcodeDetector' in window)) {
+            setScanState('not-supported');
+            toast.message(
+                'Perangkat tidak mendukung scan native, gunakan input manual.',
+            );
+            return;
+        }
+
+        try {
+            setScanState('requesting-permission');
+
+            try {
+                if (window.BarcodeDetector) {
+                    detectorRef.current = new window.BarcodeDetector({
+                        formats: ['qr_code'],
+                    });
+                }
+            } catch {
+                detectorRef.current = null;
+            }
+            if (!detectorRef.current) {
+                setScanState('not-supported');
+                toast.message(
+                    'Barcode detector tidak tersedia. Gunakan input manual.',
+                );
                 return;
             }
 
-            setIsInitializing(true);
-            setCameraError(null);
+            const stream = await navigator.mediaDevices.getUserMedia({
+                video: { facingMode: { ideal: 'environment' } },
+                audio: false,
+            });
 
-            try {
-                console.log("🎣 Memulai pancingan kamera (Pre-flight)...");
-
-                // 1. Minta akses video PALING DASAR (Tanpa syarat apapun)
-                // Agar kamera VGA tua pun bisa masuk
-                stream = await navigator.mediaDevices.getUserMedia({
-                    video: true,
-                    audio: false
-                });
-
-                // 2. Ambil ID dari kamera yang diberikan browser
-                const videoTracks = stream.getVideoTracks();
-                if (videoTracks.length > 0) {
-                    const track = videoTracks[0];
-                    const settings = track.getSettings();
-                    const detectedId = settings.deviceId;
-
-                    console.log("✅ Kamera ditemukan:", track.label);
-                    console.log("✅ ID:", detectedId);
-
-                    setActiveDeviceId(detectedId);
-                } else {
-                    throw new Error("Stream aktif tapi track video tidak ada.");
-                }
-
-            } catch (err) {
-                const e = err as Error;
-                console.error("❌ Pancingan Gagal:", e);
-
-                let msg = "Gagal mengakses kamera.";
-                if (e.name === 'NotAllowedError' || e.name === 'PermissionDeniedError') {
-                    msg = "Izin kamera ditolak browser.";
-                } else if (e.name === 'NotFoundError') {
-                    msg = "Tidak ada webcam terdeteksi.";
-                } else if (e.name === 'NotReadableError') {
-                    msg = "Kamera sedang dipakai aplikasi lain (Zoom/Gmeet?).";
-                } else {
-                    msg = `Error: ${e.name}`;
-                }
-                setCameraError(msg);
-            } finally {
-                // 3. Matikan stream pancingan segera agar Scanner bisa pakai ID-nya
-                if (stream) {
-                    stream.getTracks().forEach(t => t.stop());
-                }
-                setIsInitializing(false);
+            streamRef.current = stream;
+            if (videoRef.current) {
+                videoRef.current.srcObject = stream;
+                await videoRef.current.play();
             }
-        };
 
-        initializeCamera();
+            setScanState('streaming');
+            beginDetectLoop();
+        } catch (err) {
+            const e = err as Error;
+            if (e?.name === 'NotAllowedError') {
+                setScanState('no-permission');
+                toast.error('Izin kamera ditolak.');
+            } else {
+                setScanState('error');
+                toast.error('Gagal mengakses kamera.');
+                console.error(e);
+            }
+        }
+    };
 
+    const stopCamera = () => {
+        pauseDetectLoop();
+        if (videoRef.current) {
+            try {
+                videoRef.current.pause();
+                videoRef.current.srcObject = null;
+            } catch {
+                // ignore
+            }
+        }
+        if (streamRef.current) {
+            streamRef.current.getTracks().forEach((t) => t.stop());
+            streamRef.current = null;
+        }
+        setScanState('idle');
+    };
+
+    useEffect(() => {
         return () => {
-            if (stream) stream.getTracks().forEach(t => t.stop());
+            stopCamera();
         };
-    }, [open]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
     const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
-
-    const submitOrderScan = async (orderId: string) => {
-        if (isSubmitting) return;
-        setIsSubmitting(true);
-        const currentType = typeRef.current;
-
+    // SATU PINTU SUBMIT (dipakai kamera & manual)
+    const submitOrderScan = async (
+        orderId: string,
+        forcedType?: 'check_in' | 'check_out',
+    ) => {
         try {
-            const token = (document.querySelector('meta[name="csrf-token"]') as HTMLMetaElement)?.content ?? '';
+            const token =
+                (
+                    document.querySelector(
+                        'meta[name="csrf-token"]',
+                    ) as HTMLMetaElement
+                )?.content ?? '';
+            const currentType = forcedType ?? typeRef.current; // ← pastikan selalu yang terbaru
             const payload = { orderId, type: currentType, _token: token };
+            console.log({ payload });
 
             router.post(pesan.checkInOutOrder().url, payload, {
                 preserveScroll: true,
                 onSuccess: async () => {
-                    toast.success(`Berhasil ${currentType === 'check_in' ? 'Check-in' : 'Check-out'}`, {
-                        description: `Kode: ${orderId}`
-                    });
-                    await sleep(2000);
+                    await sleep(3000);
+                    submittingRef.current = false;
                     setIsSubmitting(false);
+                    setDetected(null);
+                    startCamera();
                     setManualCode('');
                 },
-                onError: () => setIsSubmitting(false),
             });
         } catch (e) {
-            toast.error('Terjadi kesalahan sistem.');
+            console.error(e);
+            toast.error('Gagal terhubung ke server.');
+        } finally {
+            submittingRef.current = false;
             setIsSubmitting(false);
-        }
-    };
-
-    const handleScan = (detectedCodes: { rawValue: string }[]) => {
-        if (detectedCodes.length > 0 && !isSubmitting) {
-            const rawValue = detectedCodes[0].rawValue;
-            if (rawValue) {
-                console.log("✅ QR Code Terbaca:", rawValue);
-                submitOrderScan(rawValue);
-            }
         }
     };
 
@@ -151,13 +228,20 @@ export const ScanCameraOrder = ({ open, onOpenChange }: Props) => {
         e.preventDefault();
         const code = manualCode.trim();
         if (!code) {
-            toast.warning('Masukkan kode terlebih dahulu.');
+            toast.message('Masukkan kode terlebih dahulu.');
             return;
         }
+        if (submittingRef.current) return;
+
+        // kunci di awal supaya manual & kamera konsisten
+        submittingRef.current = true;
+        setIsSubmitting(true);
         await submitOrderScan(code);
     };
 
-    if (auth?.user?.role === 'user') return null;
+    if (auth?.user?.role == 'user') {
+        return null;
+    }
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
@@ -167,97 +251,143 @@ export const ScanCameraOrder = ({ open, onOpenChange }: Props) => {
                     Scan QR
                 </Button>
             </DialogTrigger>
-
-            {/* FIX ACCESSABILITY WARNING */}
-            <DialogContent className="sm:max-w-md" aria-describedby={undefined}>
-                <DialogTitle className="sr-only">Scan QR Code</DialogTitle>
-                <DialogDescription className="sr-only">
-                    Gunakan kamera untuk scan barcode pesanan
-                </DialogDescription>
-
+            <DialogContent className="sm:max-w-md">
                 <CardHeader className="flex w-full flex-col gap-3 space-y-0 p-0">
                     <div className="flex w-full flex-col gap-1">
-                        <div className="text-base font-semibold">Scan QR Code</div>
-                        <div className="text-sm text-muted-foreground">
-                            Mode: <b>{type === 'check_in' ? 'Check-In' : 'Check-Out'}</b>
+                        <div className="text-base font-semibold">
+                            Scan QR Code
                         </div>
+                        <div className="text-sm text-muted-foreground">
+                            Arahkan kamera ke QR Code untuk melakukan
+                            check-in/check-out atau masukkan kode manual di
+                            bawah.
+                        </div>
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-2">
+                        {scanState === 'streaming' ? (
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={stopCamera}
+                                disabled={isSubmitting}
+                            >
+                                <CameraOff className="mr-2 h-4 w-4" />
+                                Matikan Kamera
+                            </Button>
+                        ) : (
+                            <Button
+                                size="sm"
+                                onClick={startCamera}
+                                disabled={isSubmitting}
+                            >
+                                <Camera className="mr-2 h-4 w-4" />
+                                Nyalakan Kamera
+                            </Button>
+                        )}
+
+                        <Badge variant="outline">
+                            {scanState === 'idle' && 'Siap'}
+                            {scanState === 'requesting-permission' &&
+                                'Meminta izin kamera…'}
+                            {scanState === 'streaming' && 'Memindai…'}
+                            {scanState === 'no-permission' &&
+                                'Izin kamera ditolak'}
+                            {scanState === 'not-supported' &&
+                                'Pemindaian tidak didukung'}
+                            {scanState === 'error' && 'Galat kamera'}
+                        </Badge>
+
+                        {detected && (
+                            <Badge>
+                                <QrCode className="mr-1 h-3 w-3" />
+                                {detected}
+                            </Badge>
+                        )}
                     </div>
                 </CardHeader>
 
-                <div className="flex w-full items-center gap-2 mt-2">
-                    <Button variant="outline" size="sm" onClick={() => setType('check_in')} className={cn('w-1/2', type === 'check_in' && 'bg-primary text-primary-foreground')}>Check-in</Button>
-                    <Button variant="outline" size="sm" onClick={() => setType('check_out')} className={cn('w-1/2', type === 'check_out' && 'bg-primary text-primary-foreground')}>Check-out</Button>
+                <div className="flex w-full items-center gap-2">
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setType('check_in')}
+                        className={cn(
+                            'w-1/2',
+                            type === 'check_in' &&
+                            'bg-primary text-primary-foreground',
+                        )}
+                    >
+                        Check-in
+                    </Button>
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setType('check_out')}
+                        className={cn(
+                            'w-1/2',
+                            type === 'check_out' &&
+                            'bg-primary text-primary-foreground',
+                        )}
+                    >
+                        Check-out
+                    </Button>
                 </div>
 
-                <CardContent className="flex flex-1 flex-col items-center justify-center gap-6 px-0 mt-4">
-                    <div className="relative w-full aspect-square max-w-[300px] overflow-hidden rounded-lg border bg-black shadow-inner">
-
-                        {/* Loading Pancingan */}
-                        {isInitializing && open && (
-                            <div className="absolute inset-0 flex flex-col items-center justify-center bg-muted text-black z-30">
-                                <Loader2 className="h-8 w-8 animate-spin mb-2 text-primary" />
-                                <span className="text-xs">Inisialisasi Kamera...</span>
-                            </div>
-                        )}
-
-                        {/* Error State */}
-                        {!isInitializing && cameraError && (
-                            <div className="absolute inset-0 flex flex-col items-center justify-center bg-muted p-4 text-center z-30">
-                                <AlertCircle className="h-10 w-10 text-destructive mb-2" />
-                                <p className="text-sm font-medium text-destructive mb-1">Error Kamera</p>
-                                <p className="text-xs text-muted-foreground mb-4">{cameraError}</p>
-                                <Button size="sm" variant="outline" onClick={() => window.location.reload()}>
-                                    <RefreshCcw className="mr-2 h-3 w-3" /> Refresh
-                                </Button>
-                            </div>
-                        )}
-
-                        {/* SCANNER UTAMA */}
-                        {!isInitializing && !cameraError && activeDeviceId && open && (
-                            <Scanner
-                                // KEY POINT 1: Gunakan ID hasil pancingan
-                                // KEY POINT 2: set resolusi ke IDEAL (bukan exact/min) agar VGA kamera tidak crash
-                                constraints={{
-                                    deviceId: activeDeviceId,
-                                    width: { ideal: 640 },  // Request resolusi rendah (VGA)
-                                    height: { ideal: 480 }, // Request resolusi rendah (VGA)
-                                    // facingMode JANGAN DISET SAMA SEKALI DISINI
-                                }}
-                                onScan={handleScan}
-                                onError={(err) => {
-                                    console.warn("Scanner runtime warning:", err);
-                                    // Abaikan error di sini jika kamera visualnya masih jalan
-                                }}
-                                paused={isSubmitting}
-                                components={{ torch: false, finder: true }}
-                                styles={{ container: { width: '100%', height: '100%' }, video: { objectFit: 'cover' } }}
-                                scanDelay={2000}
+                <CardContent className="flex flex-1 flex-col items-center justify-center gap-6 px-0">
+                    {/* CAMERA PREVIEW */}
+                    <div className="relative w-full max-w-xl">
+                        <div className="relative aspect-video w-full overflow-hidden rounded-lg border">
+                            <video
+                                ref={videoRef}
+                                className="size-full object-cover"
+                                muted
+                                playsInline
+                                autoPlay
                             />
-                        )}
-
-                        {isSubmitting && (
-                            <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/60 z-40 text-white backdrop-blur-[2px]">
-                                <Loader2 className="h-10 w-10 animate-spin mb-2" />
-                                <span className="text-sm font-medium">Memproses...</span>
-                            </div>
-                        )}
-                    </div>
-
-                    <div className="w-full space-y-2">
-                        <div className="flex items-center gap-2">
-                            <div className="h-px flex-1 bg-border" />
-                            <span className="text-xs text-muted-foreground">ATAU MANUAL</span>
-                            <div className="h-px flex-1 bg-border" />
+                            {scanState === 'streaming' && (
+                                <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+                                    <div className="h-40 w-40 rounded-md border-2 border-white/70 shadow-[0_0_0_100vmax_rgba(0,0,0,0.35)]" />
+                                </div>
+                            )}
                         </div>
-                        <form onSubmit={onSubmitManual} className="flex w-full items-center gap-2">
-                            <Input placeholder="Kode pesanan..." value={manualCode} onChange={(e) => setManualCode(e.target.value)} disabled={isSubmitting} className="flex-1" />
-                            <Button type="submit" disabled={isSubmitting}>
-                                {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <QrCode className="mr-2 h-4 w-4" />} Proses
-                            </Button>
-                        </form>
                     </div>
+
+                    {/* MANUAL INPUT */}
+                    <form
+                        onSubmit={onSubmitManual}
+                        className="flex w-full max-w-md items-center gap-2 px-4 md:px-0"
+                    >
+                        <Input
+                            placeholder="Masukkan kode pesanan…"
+                            value={manualCode}
+                            onChange={(e) => setManualCode(e.target.value)}
+                            disabled={isSubmitting}
+                        />
+                        <Button type="submit" disabled={isSubmitting}>
+                            {isSubmitting ? (
+                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            ) : null}
+                            {type === 'check_in' ? 'Check-in' : 'Check-out'}
+                        </Button>
+                    </form>
                 </CardContent>
             </DialogContent>
         </Dialog>
     );
 };
+
+// TS helpers
+declare global {
+    interface Window {
+        BarcodeDetector?: {
+            new(options?: { formats?: string[] }): BarcodeDetector;
+            getSupportedFormats?: () => Promise<string[]>;
+        };
+    }
+    interface BarcodeDetector {
+        detect: (
+            source: CanvasImageSource | ImageBitmap | HTMLVideoElement,
+        ) => Promise<Array<{ rawValue: string }>>;
+    }
+}

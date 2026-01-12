@@ -24,10 +24,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->middleware('role:superadmin')
         ->name('management-pengguna');
 
-    // Hanya SUPERADMIN
+    // Hanya ADMIN & SUPERADMIN
     Route::group([
         'prefix' => 'management-fasilitas',
-        'middleware' => ['role:superadmin'],
+        'middleware' => ['role:admin,superadmin'],
     ], function () {
         Route::get('', [ManagementShowController::class, 'showFasilitas'])->name('management-fasilitas');
         Route::post('', [ManagementMutateController::class, 'addFasilitas'])->name('management-fasilitas.add');
