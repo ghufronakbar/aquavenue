@@ -413,7 +413,7 @@ const Footer = () => {
     return (
         <div className="flex flex-row items-center justify-center gap-4">
             <p className="text-sm text-neutral-500">
-                © 2025 Kolam Renang Pandan Wangi. All rights reserved.
+                © 2026 Kolam Renang Pandan Wangi. All rights reserved.
             </p>
         </div>
     );
