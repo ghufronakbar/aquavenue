@@ -73,7 +73,12 @@ class ManagementMutateController extends Controller
             'initial_stock' => ['required', 'integer'],
         ]);
 
-        Facility::create($validated);
+        $facility = Facility::create($validated);
+        FacilityStockIn::create([
+            'facility_id' => $facility->id,
+            'stock' => $validated["initial_stock"],
+        ]);
+
         return redirect()->route('management-fasilitas')->with('success', 'Fasilitas berhasil ditambahkan');
     }
 
